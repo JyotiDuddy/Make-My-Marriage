@@ -31,6 +31,14 @@ module.exports = [
     },
   },
   {
+    files: ['server/test/**/*.mjs'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: { ...globals.node },
+    },
+  },
+  {
     files: ['client/vite.config.js'],
     languageOptions: {
       ecmaVersion: 'latest',

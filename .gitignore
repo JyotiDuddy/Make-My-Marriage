@@ -3,10 +3,12 @@
 .env.*
 !.env.example
 
+
 # Dependencies and build output
 node_modules/
 dist/
 coverage/
+design-reference/
 
 # Logs and temporary files
 *.log
