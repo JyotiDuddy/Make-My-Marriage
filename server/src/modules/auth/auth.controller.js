@@ -52,6 +52,11 @@ function createAuthController(service) {
       const { message } = await service.resetPassword(req.body);
       return sendSuccess(res, {}, { message });
     },
+
+    async activateManager(req, res) {
+      const data = await service.activateManager(req.body, req);
+      return sendSuccess(res, data, { message: 'Manager account activated successfully.' });
+    },
   };
 }
 

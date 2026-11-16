@@ -71,9 +71,23 @@ function validateResetPassword(body) {
   };
 }
 
+function validateManagerActivation(body) {
+  requireBody(body);
+  if (typeof body.token !== 'string' || body.token.length === 0 || body.token.length > 512) {
+    throw invalidRequest();
+  }
+
+  return {
+    token: body.token,
+    password: requirePassword(body.password),
+  };
+}
+
 module.exports = {
+  normalizeEmail,
   validateForgotPassword,
   validateLogin,
+  validateManagerActivation,
   validateRegistration,
   validateResetPassword,
 };

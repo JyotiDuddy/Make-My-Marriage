@@ -11,6 +11,10 @@ const { invalidateUserSessions } = require('../../config/session');
 const GENERIC_RESET_MESSAGE = 'If an account exists, reset instructions will be sent when email delivery is available.';
 
 function hashResetToken(token) {
+  return hashToken(token);
+}
+
+function hashToken(token) {
   return createHash('sha256').update(token).digest('hex');
 }
 
@@ -208,7 +212,58 @@ function createAuthService({
     return { message: 'Password reset successfully. Please log in with your new password.' };
   }
 
-  return { forgotPassword, getCurrentUser, login, register, resetPassword };
+  async function activateManager(body, req) {
+    const { token, password } = require('./auth.validation').validateManagerActivation(body);
+    const tokenHash = hashToken(token);
+    const nowValue = now();
+    const candidate = await UserModel.findOne({
+      activationTokenHash: tokenHash,
+      role: 'MANAGER',
+    }).select('status activationExpiresAt');
+
+    if (!candidate || candidate.status !== 'INVITED') {
+      throw tokenError(400, 'TOKEN_INVALID', 'The Manager activation token is invalid.');
+    }
+    if (!candidate.activationExpiresAt || candidate.activationExpiresAt <= nowValue) {
+      throw tokenError(410, 'TOKEN_EXPIRED', 'The Manager activation token has expired.');
+    }
+
+    const passwordHash = await bcrypt.hash(password, saltRounds);
+    const consumedAt = now();
+    const manager = await UserModel.findOneAndUpdate(
+      {
+        activationTokenHash: tokenHash,
+        role: 'MANAGER',
+        status: 'INVITED',
+        activationExpiresAt: { $gt: consumedAt },
+      },
+      {
+        $set: {
+          passwordHash,
+          status: 'ACTIVE',
+          activatedAt: consumedAt,
+        },
+        $unset: { activationTokenHash: 1, activationExpiresAt: 1 },
+      },
+      { returnDocument: 'after', runValidators: true },
+    );
+
+    if (!manager) {
+      throw tokenError(400, 'TOKEN_INVALID', 'The Manager activation token is invalid.');
+    }
+
+    await establishSession(req, manager);
+    return {
+      user: {
+        id: manager._id.toString(),
+        name: manager.name,
+        email: manager.email,
+        role: manager.role,
+      },
+    };
+  }
+
+  return { activateManager, forgotPassword, getCurrentUser, login, register, resetPassword };
 }
 
 const authService = createAuthService();
@@ -216,4 +271,5 @@ const authService = createAuthService();
 module.exports = authService;
 module.exports.createAuthService = createAuthService;
 module.exports.hashResetToken = hashResetToken;
+module.exports.hashToken = hashToken;
 module.exports.GENERIC_RESET_MESSAGE = GENERIC_RESET_MESSAGE;

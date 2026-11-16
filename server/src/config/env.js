@@ -79,12 +79,44 @@ if (bcryptSaltRounds > 15) {
 const authRateLimitWindowMs = positiveInteger('AUTH_RATE_LIMIT_WINDOW_MS', 15 * 60 * 1000);
 const sessionMaxAgeMs = positiveInteger('SESSION_MAX_AGE_MS', 7 * 24 * 60 * 60 * 1000);
 const passwordResetTokenTtlMs = positiveInteger('PASSWORD_RESET_TOKEN_TTL_MS', 60 * 60 * 1000);
+const managerActivationTokenTtlMs = positiveInteger('MANAGER_ACTIVATION_TOKEN_TTL_MS', 24 * 60 * 60 * 1000);
 const trustProxy = trustProxyValue === undefined
   ? (nodeEnv === 'production' ? false : 0)
   : Number(trustProxyValue);
 
 if (trustProxy !== false && (!Number.isSafeInteger(trustProxy) || trustProxy < 0)) {
   throw new Error('TRUST_PROXY must be a non-negative proxy hop count.');
+}
+
+const smtpEnvNames = ['SMTP_HOST', 'SMTP_PORT', 'SMTP_SECURE', 'SMTP_USER', 'SMTP_PASSWORD', 'SMTP_FROM'];
+const configuredSmtpValues = smtpEnvNames.map((name) => process.env[name]?.trim() ?? '');
+const hasAnySmtpValue = configuredSmtpValues.some(Boolean);
+let smtp;
+
+if (hasAnySmtpValue) {
+  if (configuredSmtpValues.some((value) => !value)) {
+    throw new Error('SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USER, SMTP_PASSWORD, and SMTP_FROM must all be configured together.');
+  }
+
+  const smtpPort = Number(process.env.SMTP_PORT);
+  const smtpSecureValue = process.env.SMTP_SECURE.toLowerCase();
+  if (!Number.isInteger(smtpPort) || smtpPort < 1 || smtpPort > 65535) {
+    throw new Error('SMTP_PORT must be an integer between 1 and 65535.');
+  }
+  if (!['true', 'false'].includes(smtpSecureValue)) {
+    throw new Error('SMTP_SECURE must be true or false.');
+  }
+
+  smtp = {
+    host: process.env.SMTP_HOST.trim(),
+    port: smtpPort,
+    secure: smtpSecureValue === 'true',
+    auth: {
+      user: process.env.SMTP_USER.trim(),
+      pass: process.env.SMTP_PASSWORD,
+    },
+    from: process.env.SMTP_FROM.trim(),
+  };
 }
 
 module.exports = {
@@ -101,11 +133,16 @@ module.exports = {
   trustProxy,
   bcryptSaltRounds,
   passwordResetTokenTtlMs,
+  managerActivationTokenTtlMs,
   authRateLimitWindowMs,
   authRateLimits: {
     register: positiveInteger('AUTH_REGISTER_RATE_LIMIT_MAX', 5),
     login: positiveInteger('AUTH_LOGIN_RATE_LIMIT_MAX', 10),
     forgotPassword: positiveInteger('AUTH_FORGOT_PASSWORD_RATE_LIMIT_MAX', 5),
     resetPassword: positiveInteger('AUTH_RESET_PASSWORD_RATE_LIMIT_MAX', 10),
+    managerInvitation: positiveInteger('AUTH_MANAGER_INVITATION_RATE_LIMIT_MAX', 5),
+    managerInvitationResend: positiveInteger('AUTH_MANAGER_INVITATION_RESEND_RATE_LIMIT_MAX', 5),
+    managerActivation: positiveInteger('AUTH_MANAGER_ACTIVATION_RATE_LIMIT_MAX', 10),
   },
+  smtp,
 };

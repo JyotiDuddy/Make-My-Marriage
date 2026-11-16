@@ -1,10 +1,10 @@
 # Make My Marriage — Backend Implementation Roadmap
 
-**Status:** Planning baseline
+**Status:** Active roadmap — M1–M4 COMPLETED; M5 next
 **Source of truth:** Approved PRD v1.1, System Architecture v1.1, Database Design v1.2, API Design v1.1, plus confirmed planning decisions recorded in the Project Status Report.
 **Architecture:** CommonJS Node.js/Express modular monolith, MongoDB/Mongoose, REST API under `/api/v1`.
 
-This roadmap assigns the documented backend scope to 15 milestones. Milestone 1 is complete. Milestones 2–15 are planned and must be implemented and verified one at a time. Tests are written with each milestone; Milestone 15 includes cross-module integration and CI/CD completion from the API design.
+This roadmap assigns the documented backend scope to 15 milestones. Milestones 1–4 are complete. Milestones 5–15 remain planned and must be implemented and verified one at a time. Tests are written with each milestone; Milestone 15 includes cross-module integration and CI/CD completion from the API design.
 
 ## Status and milestone tracking conventions
 
@@ -36,9 +36,9 @@ Mark a milestone **COMPLETED** only when its implementation and completion check
 | # | Milestone | Status | Main deliverable |
 |---|---|---|---|
 | 1 | Backend Foundation | COMPLETED | Express foundation, `/api/v1/health`, common response/error handling and HTTP tests |
-| 2 | Core Persistence Models | NOT STARTED | User and Wedding Mongoose models and documented indexes |
-| 3 | Authentication, Sessions and Security | NOT STARTED | Seven Admin authentication/session/CSRF/password endpoints |
-| 4 | Wedding Setup and Manager Onboarding | NOT STARTED | Wedding setup/settings, Manager invitation and activation, publication control |
+| 2 | Core Persistence Models | COMPLETED | User and Wedding Mongoose models and documented indexes |
+| 3 | Authentication, Sessions and Security | COMPLETED | Seven Admin authentication/session/CSRF/password endpoints |
+| 4 | Wedding Setup and Manager Onboarding | COMPLETED | Wedding setup/settings, Manager invitation and activation, publication control |
 | 5 | Wedding Images and Our Story | NOT STARTED | Hero/cover and Our Story image/content APIs with Cloudinary coordination |
 | 6 | Events and YouTube Metadata | NOT STARTED | Event CRUD, status, menus, venue and video metadata |
 | 7 | Shared Tasks | NOT STARTED | Task CRUD and optional event relationship |
@@ -89,8 +89,8 @@ Mark a milestone **COMPLETED** only when its implementation and completion check
 
 ## Milestone 2 — Core Persistence Models
 
-**Status:** NOT STARTED
-**Start/completion dates:** Not recorded
+**Status:** COMPLETED
+**Start/completion dates:** 2026-11-14
 **Objective:** Add the documented persistence definitions needed by authentication and wedding setup without adding business behavior or changing approved fields/indexes.
 
 **Scope:** Configure model organization and implement only `User` and `Wedding` Mongoose schemas from Database Design §§5.1–5.2, including documented fields, enums/required rules, embedded cover/Our Story shape, timestamps, and indexes. Do not implement routes, session auth, or manager workflow here. Do not add a unique `Wedding.managerId` index.
@@ -109,19 +109,19 @@ Mark a milestone **COMPLETED** only when its implementation and completion check
 
 **Completion checklist:**
 
-- [ ] User schema matches Database Design §5.1 with no extra business fields.
-- [ ] Wedding schema matches §5.2, including separate introduction and Our Story fields.
-- [ ] Only documented indexes are declared; `managerId` index is not unique.
-- [ ] Model tests pass in an isolated database configuration.
-- [ ] No API routes or auth behavior are included prematurely.
-- [ ] Lint and relevant build/tests pass and results are recorded.
+- [x] User schema matches Database Design §5.1 with no extra business fields.
+- [x] Wedding schema matches §5.2, including separate introduction and Our Story fields.
+- [x] Only documented indexes are declared; `managerId` index is not unique.
+- [x] Model tests pass in an isolated database configuration.
+- [x] No API routes or auth behavior are included prematurely.
+- [x] Lint and relevant build/tests pass and results are recorded.
 
 ---
 
 ## Milestone 3 — Authentication, Sessions and Security
 
-**Status:** NOT STARTED
-**Start/completion dates:** Not recorded
+**Status:** COMPLETED
+**Start/completion dates:** 2026-11-14
 **Objective:** Implement secure Admin authentication using documented server-side sessions and the existing User model.
 
 **Scope:** Admin registration; login/logout; current-user lookup; password hashing; session regeneration/destruction and MongoDB store; HTTP-only cookie settings; CSRF token issuance/validation; rate limits appropriate to documented auth operations; forgot-password and reset-password flows/email-provider boundary. Manager activation is assigned to M4. Do not implement wedding or manager-invitation APIs in this milestone.
@@ -140,23 +140,24 @@ Mark a milestone **COMPLETED** only when its implementation and completion check
 
 **Completion checklist:**
 
-- [ ] All seven M3 auth endpoints are mounted under `/api/v1` with documented request/response behavior; Manager activation remains assigned to M4.
-- [ ] Mongo-backed session storage and cookie controls work in test configuration.
-- [ ] CSRF is enforced on authenticated state-changing cookie requests.
-- [ ] Password reset tokens are single-use, expiring, and stored only as hashes.
-- [ ] No guest registration or client-selected role is possible.
-- [ ] API tests cover the documented auth cases and pass without production services.
-- [ ] Lint/build pass; no secrets or raw tokens are exposed; status report is updated.
+- [x] All seven M3 auth endpoints are mounted under `/api/v1` with documented request/response behavior; Manager activation remains assigned to M4.
+- [x] Mongo-backed session storage and cookie controls work in test configuration.
+- [x] CSRF is enforced on authenticated state-changing cookie requests.
+- [x] Password reset tokens are single-use, expiring, and stored only as hashes.
+- [x] No guest registration or client-selected role is possible.
+- [x] API tests cover the documented auth cases and pass without production services.
+- [x] Lint/build pass; no secrets or raw tokens are exposed; status report is updated.
 
 ---
 
 ## Milestone 4 — Wedding Setup and Manager Onboarding
 
-**Status:** NOT STARTED
-**Start/completion dates:** Not recorded
+**Status:** COMPLETED
+**Start date:** 2026-11-16
+**Completion date:** 2026-11-16
 **Objective:** Let an authenticated Admin create/configure the wedding, invite the designated Manager, and control website publication; let the invited Manager accept the invitation and activate the account.
 
-**Scope:** Admin creates and manages wedding details, invites the Manager by email, and controls website publication. Implement Manager activation through the existing Auth module endpoint. Admin replacement of the designated Manager is a confirmed product capability, but do not invent replacement mechanics beyond approved API/database behavior. Do not invent token or account/session invalidation behavior beyond approved documentation. Publication prerequisites remain a feature decision to finalize before publication implementation; never invent or silently enforce prerequisites. Unpublishing does not revoke family RSVP tokens.
+**Scope:** Admin creates and manages Wedding details, sends the first Manager invitation, and controls publication. Manager replacement is explicitly out of M4. Existing email addresses are rejected; resend reuses the assigned invited account. Publication requires only valid required Wedding information; cover image, Our Story, events, announcements and photos are optional. Invitation records are committed before email; a delivery failure leaves them available for resend. Activation tokens default to 24 hours and are configurable. Unpublishing sets `publishedAt` to `null` and does not revoke RSVP tokens.
 
 **Manager workflow (API Design §4.7, then Auth activation):**
 
@@ -173,24 +174,24 @@ The Manager assignment therefore occurs during invitation, before the activation
 
 **Documented endpoints (7):** `POST /weddings`; `GET /weddings/me`; `PATCH /weddings/me`; `PATCH /weddings/me/publication`; `POST /weddings/me/manager-invitation`; `POST /weddings/me/manager-invitation/resend`; `POST /auth/manager-activation` (Auth module endpoint assigned to M4).
 
-**Dependencies:** M2 User/Wedding models; M3 authentication, password hashing, sessions, role middleware, and auth service functions needed to establish the activated Manager session.
+**Dependencies:** M2 User/Wedding models; M3 authentication, password hashing and sessions. M4 adds reusable role authorization and applies the existing CSRF/session behavior to Wedding mutations and activation.
 
 **Security and data integrity:** Admin-only wedding create/update/publication/invitation; Manager can read their own wedding; activation is public but requires the documented invitation token. Derive authenticated admin/manager identity from session; enforce unique admin ownership and slug; exclude client control of `adminId`/`managerId`. In the invitation transaction, persist the invited User, token hash/expiry and Wedding manager assignment, commit, then send the email. Keep one designated Manager at a time without a unique `Wedding.managerId` index. Do not revoke RSVP links on unpublish.
 
-**Required tests:** One wedding per Admin; duplicate slug; allowed patch fields only; Manager cannot mutate Admin-only fields; correct wedding lookup for both roles; invitation creates an `INVITED` Manager with no password, saves token hash/expiry, assigns `Wedding.managerId`, commits, and sends email only after commit; activation with a valid invitation token lets the Manager set a password, changes status to `ACTIVE`, clears activation fields, and establishes the documented session; expired/reused activation token is rejected; resend follows its documented behavior; publish/unpublish and `publishedAt`; RSVP token remains unaffected by unpublish; publication prerequisite behavior after an approved decision. Do not add tests that assume undocumented replacement mechanics.
+**Required tests:** One Wedding per Admin and a persisted `managerId: null` on initial creation; duplicate create/update slug; allowlisted patch fields; Manager and anonymous restrictions; Admin/Manager Wedding resolution; invitation rejects existing accounts, commits the invited User and Wedding assignment before email, stores only a token hash, and preserves committed state on delivery failure; resend reuses the same account and invalidates the previous token; activation accepts a valid token once, hashes the password, clears token fields, and establishes a regenerated session; invalid/expired/reused/active-account tokens fail; publication requires no optional content, updates `publishedAt`, and leaves RSVP token data unchanged; rate limits and CSRF behavior; injected email adapter failures. M4 replacement remains out of scope.
 
 **Learning concepts:** Ownership scoping, allowlisted updates, multi-document consistency, invitation and activation flow, external side effects after database commit, publication state.
 
 **Completion checklist:**
 
-- [ ] All six Wedding endpoints and the existing `POST /auth/manager-activation` endpoint work with documented access and payload behavior; activation remains in the Auth module.
-- [ ] Authenticated identity, not client IDs, determines ownership.
-- [ ] Manager invitation follows the documented order: invited User and hashed token/expiry are persisted, Manager is assigned to Wedding, the transaction commits, then activation email is sent.
-- [ ] Manager subsequently accepts the invitation, sets a password, activates, activation fields are cleared, and the documented session is established.
-- [ ] Manager resend behavior follows its documented contract; no additional replacement or invalidation behavior is inferred.
-- [ ] Publication prerequisites have been decided before enforcing them.
-- [ ] Unpublishing leaves RSVP tokens governed separately.
-- [ ] Tests, lint, and build pass; report records verification and unresolved items.
+- [x] All six Wedding endpoints and the existing `POST /auth/manager-activation` endpoint work with documented access and payload behavior; activation remains in the Auth module.
+- [x] Authenticated identity, not client IDs, determines ownership.
+- [x] Wedding creation explicitly persists `managerId: null`, as required by API Design §4.2; the integration test asserts the stored database value.
+- [x] Manager invitation follows the documented order: invited User and hashed token/expiry are persisted, Manager is assigned to Wedding, the transaction commits, then activation email is attempted.
+- [x] Manager subsequently accepts the invitation, sets a password, activates, activation fields are cleared, and a regenerated session is established.
+- [x] Resend reuses the invited Manager, replaces the token and preserves it on email failure.
+- [x] Publication accepts required valid Wedding information without optional content; unpublishing clears `publishedAt` and leaves RSVP tokens untouched.
+- [x] M4 security and configured rate-limit tests, backend/root lint, frontend build, and regression suites pass; status report records that SMTP credentials are not configured and real delivery is unverified.
 
 ---
 
@@ -536,14 +537,14 @@ The Manager assignment therefore occurs during invitation, before the activation
 
 ## Endpoint coverage index
 
-Every endpoint listed in API Design v1.1 is assigned below. All are pending unless marked in M1.
+Every endpoint listed in API Design v1.1 is assigned below. M1–M4 rows are complete; M5–M15 rows remain planned.
 
 | API group | Documented endpoints | Milestone |
 |---|---|---|
 | Foundation | `GET /health` under `/api/v1` | M1 (complete; existing foundation endpoint preserved) |
-| Auth | `GET /auth/csrf`; `POST /auth/register`; `POST /auth/login`; `POST /auth/logout`; `GET /auth/me`; `POST /auth/forgot-password`; `POST /auth/reset-password` | M3 (7 endpoints) |
-| Auth — Manager activation | `POST /auth/manager-activation` | M4 (Auth module endpoint; Manager onboarding workflow) |
-| Wedding | `POST /weddings`; `GET /weddings/me`; `PATCH /weddings/me`; `PATCH /weddings/me/publication`; `POST /weddings/me/manager-invitation`; `POST /weddings/me/manager-invitation/resend` | M4 |
+| Auth | `GET /auth/csrf`; `POST /auth/register`; `POST /auth/login`; `POST /auth/logout`; `GET /auth/me`; `POST /auth/forgot-password`; `POST /auth/reset-password` | M3 (7 endpoints; complete) |
+| Auth — Manager activation | `POST /auth/manager-activation` | M4 (Auth module endpoint; complete) |
+| Wedding | `POST /weddings`; `GET /weddings/me`; `PATCH /weddings/me`; `PATCH /weddings/me/publication`; `POST /weddings/me/manager-invitation`; `POST /weddings/me/manager-invitation/resend` | M4 (complete) |
 | Wedding images and Our Story | `PUT /weddings/me/cover-image`; `DELETE /weddings/me/cover-image`; `PATCH /weddings/me/our-story`; `POST /weddings/me/our-story/images`; `DELETE /weddings/me/our-story/images/:imageId` | M5 |
 | Events | `POST /events`; `GET /events`; `GET /events/:eventId`; `PATCH /events/:eventId`; `PATCH /events/:eventId/status`; `DELETE /events/:eventId` | M6 |
 | Tasks | `POST /tasks`; `GET /tasks`; `GET /tasks/:taskId`; `PATCH /tasks/:taskId`; `DELETE /tasks/:taskId` | M7 |

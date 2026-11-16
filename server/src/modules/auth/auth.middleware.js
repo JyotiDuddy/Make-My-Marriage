@@ -1,6 +1,16 @@
 const User = require('./user.model');
 const ApiError = require('../../shared/errors/api-error');
 
+function requireRole(...allowedRoles) {
+  return (req, res, next) => {
+    if (!req.authenticatedUser || !allowedRoles.includes(req.authenticatedUser.role)) {
+      next(new ApiError(403, 'FORBIDDEN', 'You are not authorized to perform this action.'));
+      return;
+    }
+    next();
+  };
+}
+
 async function requireAuthenticated(req, res, next) {
   const userId = req.session?.userId;
   if (!userId) {
@@ -24,4 +34,4 @@ async function requireAuthenticated(req, res, next) {
   }
 }
 
-module.exports = { requireAuthenticated };
+module.exports = { requireAuthenticated, requireRole };

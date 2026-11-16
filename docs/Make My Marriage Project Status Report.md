@@ -2,20 +2,20 @@
 
 **Report purpose:** Central project progress record. Maintain this document after each major milestone, feature, module, significant bug fix, or technical change. Update this file in place; do not create milestone-specific status reports.
 
-**Last updated:** 2026-11-14
+**Last updated:** 2026-11-16
 
 ## 1. Project Overview
 
 Make My Marriage is a wedding planning and guest communication application. The approved product scope includes a private wedding dashboard for Admins and Managers, a public wedding website, and secure family-specific RSVP experiences. The approved architecture is a MERN modular monolith: one React application, one Node.js/Express application, MongoDB, and selected external services.
 
-The current repository has completed the initial project scaffold, a frontend-only public wedding website demo, and Backend Milestones 1–3. The User and Wedding models, Admin authentication, MongoDB-backed sessions, CSRF protection, and password-reset flow have passed their required tests. A real email provider is not configured; password-reset delivery is represented by a tested adapter boundary.
+The current repository has completed the initial project scaffold, a frontend-only public wedding website demo, and Backend Milestones 1–4. The User and Wedding models, Admin authentication, MongoDB-backed sessions, CSRF protection, password-reset flow, Wedding setup and Manager onboarding have passed their recorded tests. Nodemailer is integrated through the existing email adapter, but SMTP credentials are not configured and real email delivery has not been tested.
 
 ## 2. Technology Stack
 
 ### Implemented
 
 - **Client:** React 19, React DOM 19, Vite 8, React Router 8, Tailwind CSS 4, ESM.
-- **Server:** Node.js 24.14.1, Express 5, Mongoose 9, Helmet, dotenv, `express-session`, `connect-mongo`, bcrypt, `csrf-sync`, `express-rate-limit`, CORS, CommonJS.
+- **Server:** Node.js 24.14.1, Express 5, Mongoose 9, Helmet, dotenv, `express-session`, `connect-mongo`, bcrypt, `csrf-sync`, `express-rate-limit`, CORS, Nodemailer, CommonJS.
 - **Repository:** npm 11.18.0 workspaces (`client` and `server`) with a root `package-lock.json`.
 - **Development tooling:** ESLint, React Hooks and React Refresh ESLint plugins, concurrently.
 - **Client/server boundary:** Vite proxies `/api` to `http://localhost:4000`; client requests are intended to use relative `/api/v1` paths. Client environment examples contain no variables; server `.env.example` contains development settings and a local MongoDB URI without credentials.
@@ -28,8 +28,8 @@ Planned feature-specific dependencies not yet installed include Zod and csv-pars
 
 **Overall project: In progress.**
 
-- **Completed:** Initial scaffold; public wedding website UI using local demo data; code change for hash-based section navigation; backend foundation with MongoDB startup and API middleware.
-- **Current stage:** Backend Milestone 3 — Authentication, Sessions and Security — is complete and verified. Backend Milestone 4 — Wedding Setup and Manager Onboarding — is next.
+- **Completed:** Initial scaffold; public wedding website UI using local demo data; code change for hash-based section navigation; Backend Milestones 1–4, including User/Wedding models, Admin authentication/security, Wedding setup/publication and Manager onboarding/activation.
+- **Current stage:** Backend Milestones 1–4 are complete and verified. Backend Milestone 5 — Wedding Images and Our Story — is next.
 - **Pending:** Later product models and APIs, private Admin/Manager dashboard UI, and frontend-backend integration.
 - **Blocked:** No current product work is marked blocked.
 
@@ -107,15 +107,15 @@ Planned feature-specific dependencies not yet installed include Zod and csv-pars
 
 ## 5. Current Development Stage
 
-The public wedding website presentation layer is in place as a demo. Backend Milestones 1–3 are complete. Backend Milestone 4 — Wedding Setup and Manager Onboarding — is next. Wedding and other product-module APIs and the private dashboard remain pending. The public website remains demo-only.
+The public wedding website presentation layer is in place as a demo. Backend Milestones 1–4 are complete. Backend Milestone 5 — Wedding Images and Our Story — is next. Later product APIs, the private dashboard and frontend-backend integration remain pending. The public website remains demo-only.
 
 ## 6. Pending Milestones and Features
 
 All pending work remains unimplemented. Backend work is tracked in [Backend Implementation Roadmap](Backend%20Implementation%20Roadmap.md).
 
-**Backend sequence:** Milestones 1–3 — Foundation, Core Persistence Models, and Authentication/Sessions/Security — are complete. Milestone 4 — Wedding Setup and Manager Onboarding — is **NEXT / NOT STARTED**, including the Auth-module `POST /auth/manager-activation` endpoint. Milestones 5–15 cover images, product modules, dashboard, public website APIs, integration, and CI/CD in the dependency-aware order defined in the roadmap.
+**Backend sequence:** Milestones 1–4 — Foundation, Core Persistence Models, Authentication/Sessions/Security, and Wedding Setup/Manager Onboarding — are complete. Milestone 5 — Wedding Images and Our Story — is **NEXT / NOT STARTED**. Milestones 6–15 remain in the existing dependency-aware order defined in the roadmap.
 
-The private Admin/Manager dashboard UI and frontend-backend integration remain pending. User and Wedding models and the seven M3 authentication endpoints are implemented; wedding and other product-module APIs remain pending.
+The private Admin/Manager dashboard UI and frontend-backend integration remain pending. M4 implements the six Wedding setup/invitation/publication endpoints and Auth-module Manager activation. Cover-image and Our Story image/content endpoints remain assigned to M5; all later product-module APIs remain pending.
 
 The public invitation response is documented across the existing API contracts: `GET /public/weddings/:slug` returns `commonInvitation`, and the published events response includes each event's `invitation`. Implementing and consuming these contracts is pending; no endpoint is being added by this report.
 
@@ -133,7 +133,7 @@ The public invitation response is documented across the existing API contracts: 
 
 ### Implementation status
 
-The scaffold, User/Wedding models, and M3 authentication/security are implemented. Later module authorization, wedding data isolation, upload validation, publication rules, and product APIs still need implementation and verification.
+The scaffold, User/Wedding models, M3 authentication/security, and M4 Wedding ownership/role authorization are implemented. Later module authorization, upload validation, public APIs and product modules still need implementation and verification.
 
 ## 8. Dependencies and Integrations
 
@@ -144,7 +144,7 @@ Package versions and purposes are declared in the root, client, and server `pack
 ### Pending integrations
 
 - Cloudinary uploads and cleanup for wedding imagery, invitations, and guest photos.
-- Email delivery for Manager invitations and password resets; the password-reset adapter boundary exists, but no provider is configured.
+- SMTP credentials and live delivery checks for Manager invitations and password resets; Nodemailer is wired into the shared adapter, and automated tests use an injected fake.
 - Public API and RSVP endpoint implementation and client integration.
 - CSV guest import and server-side validation/security dependencies listed above.
 
@@ -169,22 +169,23 @@ No production credentials or live service configuration are present in the clien
 | Browser back/forward section navigation | Not individually confirmed | Hash changes are handled through React Router location state. |
 | Dedicated family RSVP route | Route/source inspected; manual confirmation not reported | Route remains `/wedding/:slug/rsvp/:token`; interface is demo-only. |
 | M3 MongoDB session store | Passed | `connect-mongo` uses the existing Mongoose MongoClient and configured database; no second application connection was introduced. |
-| Backend product API tests | Pending | Wedding and later module endpoints are not implemented. |
+| M4 Wedding/Manager integration tests | Passed | 15 tests against a unique disposable MongoDB database; it was dropped afterward. Tests use an injected fake mailer and do not contact SMTP. |
+| Backend product API tests | Pending | M4 Wedding setup/Manager onboarding is implemented; M5 and later module endpoints are not implemented. |
 | M2 MongoDB index tests | Passed | Actual MongoDB index creation, options, and uniqueness enforcement were verified against an isolated test database and cleaned up afterward. |
 
-The root `test` script runs workspace tests when present. MongoDB integration suites are opt-in, separate workspace scripts so ordinary tests do not connect to an external database. The server has six foundation tests, 13 schema tests, seven M2 database-index tests, and 13 M3 auth integration tests.
+The root `test` script runs workspace tests when present. MongoDB integration suites are opt-in, separate workspace scripts so ordinary tests do not connect to an external database. The server has six foundation tests, 13 schema tests, seven M2 database-index tests, 13 M3 auth integration tests, and 15 M4 Wedding/Manager integration tests.
 
 ## 10. Known Issues and Limitations
 
 - The latest combined `npm run dev` attempt hit `EMFILE` from Node's `--watch-path=src`; Vite local binding also required an elevated run in the restricted environment. This is a development-environment/startup reliability issue to recheck before relying on the combined dev command.
 - The user manually confirmed that website navigation works. The detailed desktop/mobile, direct-hash, browser history, and RSVP-route test coverage has not been reported, so do not claim those individual cases were verified.
 - The public site is static demo UI. RSVP changes stay in React state; photo selection creates a local preview only. Neither operation reaches a server or persists data.
-- Real email delivery is not configured. The tested password-reset adapter boundary does not claim delivery; configure a provider adapter and server-only credentials before relying on password-reset email in a deployed environment.
+- SMTP credentials are not configured, so real password-reset or Manager-invitation delivery is unverified. M4 returns an external-service error for an invitation delivery failure while retaining the committed invitation for resend. Configure server-only SMTP settings and verify delivery before relying on email in a deployed environment.
 - Rate limits currently use the package's in-memory store, so counters are per Node.js process. A shared store would be needed if the backend later runs as multiple instances.
 - The approved documents do not define a minimum password length or complexity rule. Validation rejects empty passwords and values over bcrypt's 72-byte input limit; no additional password policy was introduced.
 - `GET /auth/csrf` has no explicit response field documented. The implementation returns the token as `data.csrfToken`, matching the documented frontend header flow; confirm this field before frontend integration if the API contract needs an exact response shape.
 - Session duration, password-reset token lifetime, rate-limit windows and thresholds, bcrypt cost, CORS origin, and trusted-proxy settings are configurable. Their current defaults are implementation choices, not product policy.
-- Wedding and later product APIs, dashboard, uploads, and deployment remain pending.
+- M5 cover-image and Our Story APIs, later product APIs, dashboard, remaining upload integrations and deployment remain pending.
 - The previously reported four moderate `minimatch` development-dependency audit findings have not been re-audited during this milestone. Installation used `--no-audit`; no audit remediation was requested.
 - The guest photo API is documented as `POST /public/weddings/:slug/photos`, but its implementation and complete request/response and operational handling are pending.
 - **npm audit advisory:** Four moderate development-dependency findings involving `minimatch` in the ESLint dependency tree were reported. `npm audit --omit=dev` returned zero vulnerabilities. Remediation was deliberately deferred; ESLint was not downgraded and dependencies were not modified.
@@ -201,6 +202,8 @@ The root `test` script runs workspace tests when present. MongoDB integration su
 | 2026-11-14 | Began Backend Milestone 2 with User and Wedding schemas and 13 schema-level tests; backend suite (19 tests), lint checks, and frontend build passed. Isolated MongoDB index-enforcement verification remains outstanding. |
 | 2026-11-14 | Completed Backend Milestone 2 after 7 isolated MongoDB index tests passed; verified all six approved index definitions and duplicate-key behavior, dropped the disposable test database, and confirmed lint/build checks. |
 | 2026-11-14 | Completed Backend Milestone 3 with seven auth endpoints, MongoDB-backed sessions, CSRF, password-reset token handling, rate limits, and 13 isolated integration tests; documented that real email delivery still needs a provider. |
+| 2026-11-16 | Completed Backend Milestone 4 with Wedding setup, publication and Manager onboarding/activation endpoints; added Nodemailer SMTP support and 15 isolated integration tests. SMTP credentials remain unconfigured; no commit or push was made. |
+| 2026-11-16 | Corrected Wedding creation to persist `managerId: null` per API Design §4.2; the integration test asserts the stored value. M4 (15), backend unit/HTTP (19), M2 index (7), M3 auth (13), lint, build and diff checks passed. |
 
 ## 12. Backend Progress and Milestone Tracking
 
@@ -249,6 +252,24 @@ The [Backend Implementation Roadmap](Backend%20Implementation%20Roadmap.md) is t
 - **Implementation defaults (configurable, not product policy):** bcrypt cost 12; session lifetime 7 days; reset-token lifetime 1 hour; rate-limit window 15 minutes with limits registration 5, login 10, forgot password 5, reset password 10; `SameSite=Lax`; development CORS origin `http://localhost:5173`. Production requires `FRONTEND_ORIGIN`; set `TRUST_PROXY` when behind a trusted TLS-terminating proxy.
 - **Outstanding issues:** Confirm the undocumented `GET /auth/csrf` response field before frontend integration; no password minimum/complexity requirement is defined; configure real email delivery before relying on password resets; a shared rate-limit store will be needed if horizontally scaling.
 - **Commit reference:** None — no commit or push was made.
+
+### Backend Milestone 4 — Wedding Setup and Manager Onboarding
+
+- **Status:** COMPLETED.
+- **Start date:** 2026-11-16.
+- **Completion date:** 2026-11-16.
+- **Objective:** Implement Admin-owned Wedding creation and management, publication control, first Manager invitation/resend, and Auth-module Manager activation.
+- **Implementation summary:** Added Admin/Manager role authorization and Wedding resolution from authenticated session identity. Admin can create one Wedding with `managerId: null` explicitly persisted as required by API Design §4.2, retrieve their or their assigned Manager's Wedding, update only documented fields, and publish/unpublish without optional content prerequisites. First invitation creates an `INVITED` Manager and assigns the account inside a MongoDB transaction before email delivery. Resend reuses that account and replaces the token. Activation validates a single-use expiring token, sets a password/status/activation timestamp, clears activation fields, and establishes a regenerated session. Email failure after invitation commit returns `EXTERNAL_SERVICE_ERROR` while preserving the invitation for resend. Unpublishing sets `publishedAt` to `null`; RSVP token data is not touched. Manager replacement remains out of M4.
+- **Endpoints:** `POST /api/v1/weddings`; `GET /api/v1/weddings/me`; `PATCH /api/v1/weddings/me`; `PATCH /api/v1/weddings/me/publication`; `POST /api/v1/weddings/me/manager-invitation`; `POST /api/v1/weddings/me/manager-invitation/resend`; `POST /api/v1/auth/manager-activation`.
+- **Important files created:** `server/src/middleware/csrf-protection.js`, `server/src/middleware/rate-limiter.js`, `server/src/modules/wedding/wedding.routes.js`, `server/src/modules/wedding/wedding.controller.js`, `server/src/modules/wedding/wedding.service.js`, `server/src/modules/wedding/wedding.validation.js`, `server/test/wedding.integration.test.mjs`.
+- **Important files modified:** `server/src/config/env.js`, `server/src/modules/auth/auth.controller.js`, `server/src/modules/auth/auth.middleware.js`, `server/src/modules/auth/auth.routes.js`, `server/src/modules/auth/auth.service.js`, `server/src/modules/auth/auth.validation.js`, `server/src/modules/auth/email.adapter.js`, `server/src/routes/v1.js`, `server/package.json`, `server/.env.example`, `package-lock.json`, this report, and the Backend Implementation Roadmap.
+- **Dependencies introduced:** Nodemailer `^10.6.0` as a server production dependency for SMTP delivery through the shared email adapter. No test dependency was added.
+- **Configuration:** `MANAGER_ACTIVATION_TOKEN_TTL_MS` defaults to 86,400,000 ms (24 hours). Manager invitation, resend, and activation limits are configurable and use the existing 15-minute in-memory rate-limit approach. SMTP requires server-only `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, and `SMTP_FROM`; `FRONTEND_ORIGIN` supplies the existing `activate-manager/:token` link origin. The example file contains blank SMTP values only.
+- **Tests and verification:** M4 integration suite passed (15 tests) against a unique disposable database, which was dropped. The creation test reads the stored Wedding document and asserts `managerId` is exactly `null`; the API response continues to expose `manager: null` without ownership IDs. Tests also covered authorization, ownership scoping, uniqueness, protected fields, publication/unpublication and RSVP-token preservation, invitation transaction ordering, existing-account rejection, email failure persistence, resend/token replacement, activation and session regeneration, invalid/expired/reused tokens, CSRF, response safety and rate limits. Reverification after the explicit-null correction: M4 integration 15 passed; M1–M3 backend unit/HTTP 19 passed, M2 MongoDB index integration 7 passed, and M3 authentication integration 13 passed. Backend lint, root lint, frontend production build and `git diff --check` passed.
+- **Email limitation:** Automated tests use an injected fake adapter; they never contacted SMTP. No SMTP credentials were configured, so real email delivery has not been tested. The invitation link is created from `FRONTEND_ORIGIN`; SMTP must be configured server-side before delivery can work.
+- **Outstanding issues:** Frontend Manager activation and Wedding setup integration remain pending. M5 image/Our Story APIs and later product APIs remain unimplemented. M3 rate limits use an in-memory store and are per process.
+- **Git state:** The working tree was clean at M4 start. M4 source, package, environment-example and documentation changes are now uncommitted; no commit or push was made.
+- **Commit reference:** None — not committed.
 
 ### Future milestone record fields
 
