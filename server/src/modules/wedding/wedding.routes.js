@@ -6,6 +6,7 @@ const ApiError = require('../../shared/errors/api-error');
 const { requireAuthenticated, requireRole } = require('../auth/auth.middleware');
 const weddingService = require('./wedding.service');
 const { createWeddingController } = require('./wedding.controller');
+const { createImageUploadMiddleware } = require('../../middleware/image-upload');
 
 function createWeddingRouter({ service = weddingService, rateLimitOverrides = {} } = {}) {
   const router = express.Router();
@@ -23,6 +24,28 @@ function createWeddingRouter({ service = weddingService, rateLimitOverrides = {}
   router.get('/me', requireAuthenticated, requireRole('ADMIN', 'MANAGER'), controller.getMe);
   router.patch('/me', ...authenticatedAdmin, csrfProtection, controller.updateMe);
   router.patch('/me/publication', ...authenticatedAdmin, csrfProtection, controller.updatePublication);
+  router.put(
+    '/me/cover-image',
+    ...authenticatedAdmin,
+    csrfProtection,
+    createImageUploadMiddleware(),
+    controller.uploadCoverImage,
+  );
+  router.delete('/me/cover-image', ...authenticatedAdmin, csrfProtection, controller.deleteCoverImage);
+  router.patch('/me/our-story', ...authenticatedAdmin, csrfProtection, controller.updateOurStory);
+  router.post(
+    '/me/our-story/images',
+    ...authenticatedAdmin,
+    csrfProtection,
+    createImageUploadMiddleware({ textFields: 1 }),
+    controller.uploadOurStoryImage,
+  );
+  router.delete(
+    '/me/our-story/images/:imageId',
+    ...authenticatedAdmin,
+    csrfProtection,
+    controller.deleteOurStoryImage,
+  );
   router.post(
     '/me/manager-invitation',
     ...authenticatedAdmin,

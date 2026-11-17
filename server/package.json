@@ -10,10 +10,13 @@
     "test": "vitest run --exclude '**/*.integration.test.mjs'",
     "test:models:integration": "vitest run test/models-index.integration.test.mjs",
     "test:auth:integration": "vitest run test/auth.integration.test.mjs",
-    "test:wedding:integration": "vitest run test/wedding.integration.test.mjs"
+    "test:wedding:integration": "vitest run test/wedding.integration.test.mjs",
+    "test:wedding-images:integration": "vitest run test/wedding-images.integration.test.mjs",
+    "test:events:integration": "vitest run test/events.integration.test.mjs"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
+    "cloudinary": "^2.11.0",
     "connect-mongo": "^6.0.0",
     "cors": "^2.8.6",
     "csrf-sync": "^4.2.1",
@@ -21,8 +24,10 @@
     "express": "^5.3.0",
     "express-rate-limit": "^8.7.4",
     "express-session": "^1.19.0",
+    "file-type": "^22.3.0",
     "helmet": "^8.3.0",
     "mongoose": "^9.12.1",
+    "multer": "^2.5.0",
     "nodemailer": "^10.6.0"
   },
   "devDependencies": {

@@ -5,7 +5,13 @@ const config = require('../../config/env');
 const User = require('../auth/user.model');
 const Wedding = require('./wedding.model');
 const emailAdapter = require('../auth/email.adapter');
+const cloudinaryAdapter = require('../../shared/storage/cloudinary.adapter');
 const { hashToken } = require('../auth/auth.service');
+const {
+  validateAltText,
+  validateImageFile,
+  validateOurStoryDescription,
+} = require('./image.validation');
 const {
   validateManagerInvitation,
   validatePublication,
@@ -29,10 +35,33 @@ function publicManager(user) {
   } : null;
 }
 
+function storyData(wedding) {
+  return {
+    ourStory: {
+      description: wedding.ourStory?.description ?? '',
+      images: (wedding.ourStory?.images ?? []).map((image) => ({
+        id: image._id.toString(),
+        url: image.url,
+        altText: image.altText,
+      })),
+    },
+  };
+}
+
+function cloudinaryFailure() {
+  return new ApiError(
+    502,
+    'EXTERNAL_SERVICE_ERROR',
+    'Image storage is unavailable. Configure CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET on the server.',
+  );
+}
+
 function createWeddingService({
   UserModel = User,
   WeddingModel = Wedding,
   mailer = emailAdapter,
+  cloudinary = cloudinaryAdapter,
+  logger = console,
   now = () => new Date(),
   activationTokenTtlMs = config.managerActivationTokenTtlMs,
   startSession = () => mongoose.startSession(),
@@ -138,6 +167,172 @@ function createWeddingService({
     );
     if (!wedding) throw new ApiError(404, 'NOT_FOUND', 'The Wedding was not found.');
     return { wedding: { id: wedding._id.toString(), websitePublished, publishedAt } };
+  }
+
+  function recordCleanupFailure(publicId, operation, weddingId, error) {
+    const record = {
+      level: 'error',
+      event: 'cloudinary_cleanup_failed',
+      operation,
+      publicId,
+      weddingId: weddingId?.toString(),
+      errorCode: error?.http_code ?? error?.code ?? error?.name ?? 'UNKNOWN',
+    };
+    try {
+      logger.error(JSON.stringify(record));
+    } catch {
+      // Cleanup logging must not change the already-committed MongoDB result.
+    }
+  }
+
+  async function deleteAsset(publicId, operation, weddingId) {
+    if (!publicId) return;
+    try {
+      await cloudinary.deleteImage(publicId);
+    } catch (error) {
+      recordCleanupFailure(publicId, operation, weddingId, error);
+    }
+  }
+
+  async function deleteNewAsset(publicId, operation, weddingId) {
+    try {
+      await cloudinary.deleteImage(publicId);
+    } catch (error) {
+      recordCleanupFailure(publicId, operation, weddingId, error);
+    }
+  }
+
+  async function uploadAsset(file, folder) {
+    await validateImageFile(file);
+    if (cloudinary.isConfigured === false) throw cloudinaryFailure();
+    try {
+      return await cloudinary.uploadImage({ buffer: file.buffer, folder });
+    } catch {
+      throw cloudinaryFailure();
+    }
+  }
+
+  async function uploadCoverImage(user, file) {
+    const currentWedding = await WeddingModel.findOne({ adminId: user._id }).select('_id');
+    if (!currentWedding) throw new ApiError(404, 'NOT_FOUND', 'The Wedding was not found.');
+
+    const image = await uploadAsset(file, 'make-my-marriage/wedding-covers');
+    let previousWedding;
+    try {
+      previousWedding = await WeddingModel.findOneAndUpdate(
+        { _id: currentWedding._id, adminId: user._id },
+        { $set: { coverImage: image } },
+        { returnDocument: 'before', runValidators: true },
+      );
+    } catch (error) {
+      await deleteNewAsset(image.publicId, 'cleanup_new_cover_after_database_failure', currentWedding._id);
+      throw error;
+    }
+
+    if (!previousWedding) {
+      await deleteNewAsset(image.publicId, 'cleanup_new_cover_after_database_failure', currentWedding._id);
+      throw new ApiError(404, 'NOT_FOUND', 'The Wedding was not found.');
+    }
+
+    await deleteAsset(previousWedding.coverImage?.publicId, 'delete_replaced_cover', previousWedding._id);
+    return { coverImage: { url: image.url } };
+  }
+
+  async function deleteCoverImage(user) {
+    const wedding = await WeddingModel.findOneAndUpdate(
+      { adminId: user._id },
+      { $unset: { coverImage: 1 } },
+      { returnDocument: 'before', runValidators: true },
+    );
+    if (!wedding) throw new ApiError(404, 'NOT_FOUND', 'The Wedding was not found.');
+
+    await deleteAsset(wedding.coverImage?.publicId, 'delete_cover', wedding._id);
+    return { coverImage: null };
+  }
+
+  async function updateOurStory(user, body) {
+    const description = validateOurStoryDescription(body);
+    const wedding = await WeddingModel.findOneAndUpdate(
+      { adminId: user._id },
+      { $set: { 'ourStory.description': description } },
+      { returnDocument: 'after', runValidators: true },
+    );
+    if (!wedding) throw new ApiError(404, 'NOT_FOUND', 'The Wedding was not found.');
+    return storyData(wedding);
+  }
+
+  async function uploadOurStoryImage(user, file, body) {
+    const altText = validateAltText(body);
+    const currentWedding = await WeddingModel.findOne({ adminId: user._id }).select('_id');
+    if (!currentWedding) throw new ApiError(404, 'NOT_FOUND', 'The Wedding was not found.');
+
+    const image = await uploadAsset(file, 'make-my-marriage/our-story');
+    let wedding;
+    try {
+      wedding = await WeddingModel.findOneAndUpdate(
+        {
+          _id: currentWedding._id,
+          adminId: user._id,
+          'ourStory.images.1': { $exists: false },
+        },
+        {
+          $push: {
+            'ourStory.images': {
+              url: image.url,
+              publicId: image.publicId,
+              altText,
+            },
+          },
+        },
+        { returnDocument: 'after', runValidators: true },
+      );
+    } catch (error) {
+      await deleteNewAsset(image.publicId, 'cleanup_new_story_image_after_database_failure', currentWedding._id);
+      throw error;
+    }
+
+    if (!wedding) {
+      await deleteNewAsset(image.publicId, 'cleanup_excess_story_image_after_concurrent_upload', currentWedding._id);
+      const stillExists = await WeddingModel.exists({ _id: currentWedding._id, adminId: user._id });
+      if (!stillExists) throw new ApiError(404, 'NOT_FOUND', 'The Wedding was not found.');
+      throw new ApiError(409, 'STORY_IMAGE_LIMIT_REACHED', 'A Wedding can have at most two Our Story images.');
+    }
+
+    const storedImage = wedding.ourStory.images.at(-1);
+    return {
+      image: {
+        id: storedImage._id.toString(),
+        url: storedImage.url,
+        altText: storedImage.altText,
+      },
+    };
+  }
+
+  async function deleteOurStoryImage(user, imageId) {
+    if (!mongoose.isValidObjectId(imageId)) {
+      throw new ApiError(404, 'NOT_FOUND', 'The Our Story image was not found.');
+    }
+
+    const wedding = await WeddingModel.findOne({
+      adminId: user._id,
+      'ourStory.images._id': imageId,
+    }).select('_id ourStory.description ourStory.images');
+    if (!wedding) throw new ApiError(404, 'NOT_FOUND', 'The Our Story image was not found.');
+
+    const image = wedding.ourStory.images.id(imageId);
+    const updatedWedding = await WeddingModel.findOneAndUpdate(
+      {
+        _id: wedding._id,
+        adminId: user._id,
+        'ourStory.images._id': imageId,
+      },
+      { $pull: { 'ourStory.images': { _id: imageId } } },
+      { returnDocument: 'after', runValidators: true },
+    );
+    if (!updatedWedding) throw new ApiError(404, 'NOT_FOUND', 'The Our Story image was not found.');
+
+    await deleteAsset(image.publicId, 'delete_story_image', wedding._id);
+    return storyData(updatedWedding);
   }
 
   async function deliverInvitation(manager, token, expiresAt) {
@@ -249,6 +444,11 @@ function createWeddingService({
     resendManagerInvitation,
     updateMyWedding,
     updatePublication,
+    uploadCoverImage,
+    deleteCoverImage,
+    updateOurStory,
+    uploadOurStoryImage,
+    deleteOurStoryImage,
   };
 }
 

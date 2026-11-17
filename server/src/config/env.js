@@ -119,6 +119,23 @@ if (hasAnySmtpValue) {
   };
 }
 
+const cloudinaryEnvNames = ['CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET'];
+const configuredCloudinaryValues = cloudinaryEnvNames.map((name) => process.env[name]?.trim() ?? '');
+const hasAnyCloudinaryValue = configuredCloudinaryValues.some(Boolean);
+let cloudinary;
+
+if (hasAnyCloudinaryValue) {
+  if (configuredCloudinaryValues.some((value) => !value)) {
+    throw new Error('CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET must all be configured together.');
+  }
+
+  cloudinary = {
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME.trim(),
+    apiKey: process.env.CLOUDINARY_API_KEY.trim(),
+    apiSecret: process.env.CLOUDINARY_API_SECRET,
+  };
+}
+
 module.exports = {
   nodeEnv,
   port,
@@ -145,4 +162,5 @@ module.exports = {
     managerActivation: positiveInteger('AUTH_MANAGER_ACTIVATION_RATE_LIMIT_MAX', 10),
   },
   smtp,
+  cloudinary,
 };

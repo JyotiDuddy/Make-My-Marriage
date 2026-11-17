@@ -32,6 +32,40 @@ function createWeddingController(service) {
       });
     },
 
+    async uploadCoverImage(req, res) {
+      return sendSuccess(res, await service.uploadCoverImage(req.authenticatedUser, req.file), {
+        message: 'Wedding cover image uploaded successfully.',
+      });
+    },
+
+    async deleteCoverImage(req, res) {
+      return sendSuccess(res, await service.deleteCoverImage(req.authenticatedUser), {
+        message: 'Wedding cover image removed successfully.',
+      });
+    },
+
+    async updateOurStory(req, res) {
+      return sendSuccess(res, await service.updateOurStory(req.authenticatedUser, req.body), {
+        message: 'Our Story updated successfully.',
+      });
+    },
+
+    async uploadOurStoryImage(req, res) {
+      return sendSuccess(
+        res,
+        await service.uploadOurStoryImage(req.authenticatedUser, req.file, req.body),
+        { message: 'Our Story photograph uploaded successfully.' },
+      );
+    },
+
+    async deleteOurStoryImage(req, res) {
+      return sendSuccess(
+        res,
+        await service.deleteOurStoryImage(req.authenticatedUser, req.params.imageId),
+        { message: 'Our Story photograph removed successfully.' },
+      );
+    },
+
     async inviteManager(req, res) {
       const result = await service.inviteManager(req.authenticatedUser, req.body);
       if (!result.emailDelivered) return emailFailure(res, 'invite');

@@ -2,13 +2,13 @@
 
 **Report purpose:** Central project progress record. Maintain this document after each major milestone, feature, module, significant bug fix, or technical change. Update this file in place; do not create milestone-specific status reports.
 
-**Last updated:** 2026-11-16
+**Last updated:** 2026-11-17
 
 ## 1. Project Overview
 
 Make My Marriage is a wedding planning and guest communication application. The approved product scope includes a private wedding dashboard for Admins and Managers, a public wedding website, and secure family-specific RSVP experiences. The approved architecture is a MERN modular monolith: one React application, one Node.js/Express application, MongoDB, and selected external services.
 
-The current repository has completed the initial project scaffold, a frontend-only public wedding website demo, and Backend Milestones 1–4. The User and Wedding models, Admin authentication, MongoDB-backed sessions, CSRF protection, password-reset flow, Wedding setup and Manager onboarding have passed their recorded tests. Nodemailer is integrated through the existing email adapter, but SMTP credentials are not configured and real email delivery has not been tested.
+The current repository has completed the initial project scaffold, a frontend-only public wedding website demo, and Backend Milestones 1–6. The User, Wedding and Event models, Admin authentication, MongoDB-backed sessions, CSRF protection, password-reset flow, Wedding setup and Manager onboarding, Wedding image/Our Story APIs, and Event APIs have passed their recorded tests. Cloudinary operations in automated tests use a fake adapter; live Cloudinary credentials are not configured or tested. Nodemailer is integrated through the existing email adapter, but SMTP credentials are not configured and real email delivery has not been tested.
 
 ## 2. Technology Stack
 
@@ -16,20 +16,21 @@ The current repository has completed the initial project scaffold, a frontend-on
 
 - **Client:** React 19, React DOM 19, Vite 8, React Router 8, Tailwind CSS 4, ESM.
 - **Server:** Node.js 24.14.1, Express 5, Mongoose 9, Helmet, dotenv, `express-session`, `connect-mongo`, bcrypt, `csrf-sync`, `express-rate-limit`, CORS, Nodemailer, CommonJS.
+- **M6 server additions:** Event Mongoose model, wedding-scoped Event routes/services, and no new third-party dependencies.
 - **Repository:** npm 11.18.0 workspaces (`client` and `server`) with a root `package-lock.json`.
 - **Development tooling:** ESLint, React Hooks and React Refresh ESLint plugins, concurrently.
 - **Client/server boundary:** Vite proxies `/api` to `http://localhost:4000`; client requests are intended to use relative `/api/v1` paths. Client environment examples contain no variables; server `.env.example` contains development settings and a local MongoDB URI without credentials.
 
 ### Planned, not yet installed or implemented
 
-Planned feature-specific dependencies not yet installed include Zod and csv-parse, where applicable. Vitest and Supertest are installed as development dependencies. The presence of a dependency does not mean every later product feature is implemented.
+Planned feature-specific dependencies not yet installed include Zod and csv-parse, where applicable. Later product modules remain unimplemented. Vitest and Supertest are installed as development dependencies. The presence of a dependency does not mean every later product feature is implemented.
 
 ## 3. Current Overall Status
 
 **Overall project: In progress.**
 
-- **Completed:** Initial scaffold; public wedding website UI using local demo data; code change for hash-based section navigation; Backend Milestones 1–4, including User/Wedding models, Admin authentication/security, Wedding setup/publication and Manager onboarding/activation.
-- **Current stage:** Backend Milestones 1–4 are complete and verified. Backend Milestone 5 — Wedding Images and Our Story — is next.
+- **Completed:** Initial scaffold; public wedding website UI using local demo data; code change for hash-based section navigation; Backend Milestones 1–6, including User/Wedding/Event models, Admin authentication/security, Wedding setup/publication and Manager onboarding/activation, Wedding image/Our Story APIs, and Event APIs.
+- **Current stage:** Backend Milestones 1–6 are complete and verified. Backend Milestone 7 — Shared Tasks — is next.
 - **Pending:** Later product models and APIs, private Admin/Manager dashboard UI, and frontend-backend integration.
 - **Blocked:** No current product work is marked blocked.
 
@@ -107,15 +108,15 @@ Planned feature-specific dependencies not yet installed include Zod and csv-pars
 
 ## 5. Current Development Stage
 
-The public wedding website presentation layer is in place as a demo. Backend Milestones 1–4 are complete. Backend Milestone 5 — Wedding Images and Our Story — is next. Later product APIs, the private dashboard and frontend-backend integration remain pending. The public website remains demo-only.
+The public wedding website presentation layer is in place as a demo. Backend Milestones 1–6 are complete. Backend Milestone 7 — Shared Tasks — is next. Later product APIs, the private dashboard and frontend-backend integration remain pending. The public website remains demo-only.
 
 ## 6. Pending Milestones and Features
 
 All pending work remains unimplemented. Backend work is tracked in [Backend Implementation Roadmap](Backend%20Implementation%20Roadmap.md).
 
-**Backend sequence:** Milestones 1–4 — Foundation, Core Persistence Models, Authentication/Sessions/Security, and Wedding Setup/Manager Onboarding — are complete. Milestone 5 — Wedding Images and Our Story — is **NEXT / NOT STARTED**. Milestones 6–15 remain in the existing dependency-aware order defined in the roadmap.
+**Backend sequence:** Milestones 1–6 — Foundation, Core Persistence Models, Authentication/Sessions/Security, Wedding Setup/Manager Onboarding, Wedding Images/Our Story, and Events/YouTube Metadata — are complete. Milestone 7 — Shared Tasks — is **NEXT / NOT STARTED**. Milestones 8–15 remain in the existing dependency-aware order defined in the roadmap.
 
-The private Admin/Manager dashboard UI and frontend-backend integration remain pending. M4 implements the six Wedding setup/invitation/publication endpoints and Auth-module Manager activation. Cover-image and Our Story image/content endpoints remain assigned to M5; all later product-module APIs remain pending.
+The private Admin/Manager dashboard UI and frontend-backend integration remain pending. M4 implements the six Wedding setup/invitation/publication endpoints and Auth-module Manager activation. M5 cover-image and Our Story endpoints and M6 Event endpoints are implemented; later product-module APIs remain pending.
 
 The public invitation response is documented across the existing API contracts: `GET /public/weddings/:slug` returns `commonInvitation`, and the published events response includes each event's `invitation`. Implementing and consuming these contracts is pending; no endpoint is being added by this report.
 
@@ -133,17 +134,17 @@ The public invitation response is documented across the existing API contracts: 
 
 ### Implementation status
 
-The scaffold, User/Wedding models, M3 authentication/security, and M4 Wedding ownership/role authorization are implemented. Later module authorization, upload validation, public APIs and product modules still need implementation and verification.
+The scaffold, User/Wedding models, M3 authentication/security, M4 Wedding ownership/role authorization, M5 Wedding image/Our Story services, and M6 Event services are implemented. Later product modules and public APIs still need implementation and verification.
 
 ## 8. Dependencies and Integrations
 
 ### Present in the repository
 
-Package versions and purposes are declared in the root, client, and server `package.json` files. External resources currently used by the demo include Google Fonts, illustrative image URLs, YouTube embed content, and Google Maps links.
+Package versions and purposes are declared in the root, client, and server `package.json` files. M5 added Cloudinary `^2.11.0`, Multer `^2.5.0`, and `file-type` `^22.3.0` to support server-side image storage and validation. External resources currently used by the demo include Google Fonts, illustrative image URLs, YouTube embed content, and Google Maps links.
 
 ### Pending integrations
 
-- Cloudinary uploads and cleanup for wedding imagery, invitations, and guest photos.
+- Live Cloudinary verification for wedding imagery, plus future Cloudinary uploads and cleanup for invitations and guest photos. M5 automated tests use a fake adapter; actual Cloudinary credentials are not configured.
 - SMTP credentials and live delivery checks for Manager invitations and password resets; Nodemailer is wired into the shared adapter, and automated tests use an injected fake.
 - Public API and RSVP endpoint implementation and client integration.
 - CSV guest import and server-side validation/security dependencies listed above.
@@ -157,7 +158,7 @@ No production credentials or live service configuration are present in the clien
 | Scaffold development startup | Recorded successful at scaffold completion | A later combined dev rerun hit Node watch `EMFILE`; current repeatability needs rechecking. |
 | Public UI `npm run lint` | Passed | After the UI implementation and subsequent navigation change. |
 | Public UI `npm run build` | Passed | Vite production build completed successfully. |
-| Backend `npm test --workspace=@make-my-marriage/server` | Passed | 19 tests: 6 foundation HTTP tests and 13 User/Wedding schema tests. Supertest required localhost permission in the restricted environment. |
+| Backend `npm test --workspace server` | Passed | 25 tests across 3 files, including 6 foundation HTTP, 13 model/schema, and 6 image-validation tests. Supertest required localhost permission in the restricted environment. |
 | MongoDB index integration tests | Passed | 7 tests against a newly named, isolated test database using the local connection with explicit database override. MongoDB created and returned all six approved indexes; duplicate-key/partial-index behavior and shared Manager references passed. The isolated database was dropped after the run; the configured application database was not modified. |
 | M3 authentication integration tests | Passed | 13 tests against a unique disposable database: registration/login/session lifecycle, CSRF, reset-token storage and expiry, session invalidation, configured rate limits, and CORS. The database was dropped after the run. Password-reset email used an injected test adapter; no real delivery was configured. |
 | Backend lint | Passed | `npm run lint --workspace=@make-my-marriage/server`. |
@@ -170,10 +171,13 @@ No production credentials or live service configuration are present in the clien
 | Dedicated family RSVP route | Route/source inspected; manual confirmation not reported | Route remains `/wedding/:slug/rsvp/:token`; interface is demo-only. |
 | M3 MongoDB session store | Passed | `connect-mongo` uses the existing Mongoose MongoClient and configured database; no second application connection was introduced. |
 | M4 Wedding/Manager integration tests | Passed | 15 tests against a unique disposable MongoDB database; it was dropped afterward. Tests use an injected fake mailer and do not contact SMTP. |
-| Backend product API tests | Pending | M4 Wedding setup/Manager onboarding is implemented; M5 and later module endpoints are not implemented. |
+| M5 Wedding images/Our Story MongoDB integration | Passed | 15 tests using a generated isolated local database and injected fake Cloudinary adapter; test database was dropped. No remote MongoDB or Cloudinary was contacted. |
+| M6 Events MongoDB integration | Passed | 11 tests against a generated loopback-only disposable database; database dropped after testing. Verifies six endpoints, indexes, auth/CSRF, role and Wedding isolation, validation, transitions, pagination, video parsing, and soft-delete/dependency guard behavior. |
+| Image-validation unit tests | Passed | 6 tests covering signatures/content validation and Our Story fields; included in the 25-test backend run. |
+| Backend product API tests | Partial | M4–M6 product endpoints are implemented; M7–M15 APIs remain unimplemented. |
 | M2 MongoDB index tests | Passed | Actual MongoDB index creation, options, and uniqueness enforcement were verified against an isolated test database and cleaned up afterward. |
 
-The root `test` script runs workspace tests when present. MongoDB integration suites are opt-in, separate workspace scripts so ordinary tests do not connect to an external database. The server has six foundation tests, 13 schema tests, seven M2 database-index tests, 13 M3 auth integration tests, and 15 M4 Wedding/Manager integration tests.
+The root `test` script runs workspace tests when present. MongoDB integration suites are opt-in, separate workspace scripts so ordinary tests do not connect to an external database. The server has six foundation tests, 13 schema tests, seven M2 database-index tests, 13 M3 auth integration tests, 15 M4 Wedding/Manager integration tests, 15 M5 Wedding images/Our Story integration tests, and 11 M6 Event integration tests.
 
 ## 10. Known Issues and Limitations
 
@@ -185,7 +189,7 @@ The root `test` script runs workspace tests when present. MongoDB integration su
 - The approved documents do not define a minimum password length or complexity rule. Validation rejects empty passwords and values over bcrypt's 72-byte input limit; no additional password policy was introduced.
 - `GET /auth/csrf` has no explicit response field documented. The implementation returns the token as `data.csrfToken`, matching the documented frontend header flow; confirm this field before frontend integration if the API contract needs an exact response shape.
 - Session duration, password-reset token lifetime, rate-limit windows and thresholds, bcrypt cost, CORS origin, and trusted-proxy settings are configurable. Their current defaults are implementation choices, not product policy.
-- M5 cover-image and Our Story APIs, later product APIs, dashboard, remaining upload integrations and deployment remain pending.
+- M7–M15 product APIs, dashboard, frontend-backend integration, future upload integrations, and deployment remain pending. Event-dependent Task, Expense, Guest, RSVP, Invitation and Photo models do not yet exist; their milestones must register deletion checks. M5 cleanup failures are logged for manual Cloudinary retry; there is no queue or automated retry worker.
 - The previously reported four moderate `minimatch` development-dependency audit findings have not been re-audited during this milestone. Installation used `--no-audit`; no audit remediation was requested.
 - The guest photo API is documented as `POST /public/weddings/:slug/photos`, but its implementation and complete request/response and operational handling are pending.
 - **npm audit advisory:** Four moderate development-dependency findings involving `minimatch` in the ESLint dependency tree were reported. `npm audit --omit=dev` returned zero vulnerabilities. Remediation was deliberately deferred; ESLint was not downgraded and dependencies were not modified.
@@ -204,6 +208,8 @@ The root `test` script runs workspace tests when present. MongoDB integration su
 | 2026-11-14 | Completed Backend Milestone 3 with seven auth endpoints, MongoDB-backed sessions, CSRF, password-reset token handling, rate limits, and 13 isolated integration tests; documented that real email delivery still needs a provider. |
 | 2026-11-16 | Completed Backend Milestone 4 with Wedding setup, publication and Manager onboarding/activation endpoints; added Nodemailer SMTP support and 15 isolated integration tests. SMTP credentials remain unconfigured; no commit or push was made. |
 | 2026-11-16 | Corrected Wedding creation to persist `managerId: null` per API Design §4.2; the integration test asserts the stored value. M4 (15), backend unit/HTTP (19), M2 index (7), M3 auth (13), lint, build and diff checks passed. |
+| 2026-11-17 | Completed Backend Milestone 5 after 15 local MongoDB integration tests, 25 backend tests, lint, build and diff checks passed. Recorded the approved cover deletion contract and M5 verification; Cloudinary live credentials remain unconfigured. |
+| 2026-11-17 | Completed Backend Milestone 6 with all six Event endpoints, 11 isolated local MongoDB tests, 25 backend regression tests, M5 integration regression, lint, build and diff checks. Recorded the approved required-status, reversible-transition and `HH:mm` clarifications. |
 
 ## 12. Backend Progress and Milestone Tracking
 
@@ -267,8 +273,42 @@ The [Backend Implementation Roadmap](Backend%20Implementation%20Roadmap.md) is t
 - **Configuration:** `MANAGER_ACTIVATION_TOKEN_TTL_MS` defaults to 86,400,000 ms (24 hours). Manager invitation, resend, and activation limits are configurable and use the existing 15-minute in-memory rate-limit approach. SMTP requires server-only `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, and `SMTP_FROM`; `FRONTEND_ORIGIN` supplies the existing `activate-manager/:token` link origin. The example file contains blank SMTP values only.
 - **Tests and verification:** M4 integration suite passed (15 tests) against a unique disposable database, which was dropped. The creation test reads the stored Wedding document and asserts `managerId` is exactly `null`; the API response continues to expose `manager: null` without ownership IDs. Tests also covered authorization, ownership scoping, uniqueness, protected fields, publication/unpublication and RSVP-token preservation, invitation transaction ordering, existing-account rejection, email failure persistence, resend/token replacement, activation and session regeneration, invalid/expired/reused tokens, CSRF, response safety and rate limits. Reverification after the explicit-null correction: M4 integration 15 passed; M1–M3 backend unit/HTTP 19 passed, M2 MongoDB index integration 7 passed, and M3 authentication integration 13 passed. Backend lint, root lint, frontend production build and `git diff --check` passed.
 - **Email limitation:** Automated tests use an injected fake adapter; they never contacted SMTP. No SMTP credentials were configured, so real email delivery has not been tested. The invitation link is created from `FRONTEND_ORIGIN`; SMTP must be configured server-side before delivery can work.
-- **Outstanding issues:** Frontend Manager activation and Wedding setup integration remain pending. M5 image/Our Story APIs and later product APIs remain unimplemented. M3 rate limits use an in-memory store and are per process.
+- **Outstanding issues:** Frontend Manager activation and Wedding setup integration remain pending. Later product APIs remain unimplemented. M3 rate limits use an in-memory store and are per process.
 - **Git state:** The working tree was clean at M4 start. M4 source, package, environment-example and documentation changes are now uncommitted; no commit or push was made.
+- **Commit reference:** None — not committed.
+
+### Backend Milestone 5 — Wedding Images and Our Story
+
+- **Status:** COMPLETED.
+- **Start date:** 2026-11-17.
+- **Completion date:** 2026-11-17, after local MongoDB integration verification.
+- **Objective:** Implement the existing cover-image and Our Story APIs using the approved Wedding schema, with secure upload validation and Cloudinary coordination.
+- **Implementation summary:** Implemented cover upload/replacement/deletion, Our Story description update, upload of up to two supporting images, and embedded image deletion. Uploads are limited to JPEG, PNG and WebP with a 10 MB cap and signature validation. Admin authentication, Wedding ownership, and CSRF checks run before multipart parsing. The two-image limit uses an atomic MongoDB condition. Cover removal is idempotent, returns `coverImage: null`, and removes the database reference before Cloudinary deletion. Cleanup failures are recorded in structured logs for manual retry. Public responses omit Cloudinary public IDs. No schema, index, endpoint, collection, queue, or worker was added.
+- **Endpoints:** `PUT /api/v1/weddings/me/cover-image`; `DELETE /api/v1/weddings/me/cover-image`; `PATCH /api/v1/weddings/me/our-story`; `POST /api/v1/weddings/me/our-story/images`; `DELETE /api/v1/weddings/me/our-story/images/:imageId`.
+- **Important files created:** `server/src/middleware/image-upload.js`, `server/src/modules/wedding/image.validation.js`, `server/src/shared/storage/cloudinary.adapter.js`, `server/test/image-validation.test.mjs`, `server/test/wedding-images.integration.test.mjs`.
+- **Important files modified:** `server/src/config/env.js`, `server/src/modules/wedding/wedding.controller.js`, `server/src/modules/wedding/wedding.routes.js`, `server/src/modules/wedding/wedding.service.js`, `server/.env.example`, `server/package.json`, `package-lock.json`, `docs/Make My Marriage api.md`, `docs/Backend Implementation Roadmap.md`, and this report.
+- **Dependencies introduced:** Cloudinary `^2.11.0`, Multer `^2.5.0`, and `file-type` `^22.3.0`. No new test dependency was added.
+- **Configuration:** Server `.env.example` names `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` without values. Real credentials are required only to exercise actual Cloudinary operations; automated tests use an injected fake adapter. The real `.env` was not read or changed.
+- **Tests and verification:** M5 MongoDB integration suite passed (15/15) against a generated disposable database on local MongoDB at `127.0.0.1:27017`; it was dropped after testing. Fake Cloudinary adapter prevented external uploads/deletions. Backend non-integration suite passed (25/25 across 3 files, including six image-validation unit tests). Server lint, root lint, frontend production build, and `git diff --check` passed. Initial test-only failures were corrected and the full M5 integration suite passed on rerun.
+- **Limitations:** Live Cloudinary integration is untested because real credentials were not configured. Failed asset cleanup requires manual retry from structured logs; there is no persistent retry queue or worker. Guest photo uploads remain outside M5.
+- **Git state:** Changes remain uncommitted; no commit or push was made.
+- **Commit reference:** None — not committed.
+
+### Backend Milestone 6 — Events and YouTube Metadata
+
+- **Status:** COMPLETED.
+- **Start date:** 2026-11-17.
+- **Completion date:** 2026-11-17, after the local MongoDB integration suite and required regressions/checks passed.
+- **Objective:** Implement wedding-scoped Event CRUD, listing, status, menu, Maps, YouTube, and lifecycle behavior using the approved Event schema.
+- **Implementation summary:** Added the Event model with the documented fields and three indexes. Implemented all six endpoints under `/api/v1/events`; Admin and Manager access is session-authenticated, CSRF-protected for mutations, and scoped to the Wedding resolved from the authenticated user. `weddingId`, `createdBy`, and `updatedBy` are server-controlled. List filters support status, name search and event date with page/limit pagination (maximum 100). Input validation covers real `YYYY-MM-DD` dates, approved 24-hour `HH:mm` times, embedded menu shape, Google Maps URL, and YouTube URL/type; video IDs are derived on the server and client-supplied IDs are rejected. Any transition among the approved statuses is allowed. Events are soft-deleted via `deletedAt`; an injectable dependency-check list blocks deletion and recommends cancellation when linked records are reported.
+- **Approved contract clarifications recorded:** Event creation requires explicit `status` with no default; statuses are `UPCOMING`, `COMPLETED`, and `CANCELLED`, with transitions allowed in either direction; event times use `HH:mm`. These clarifications are recorded in API Design §§2.8 and 7 and in the M6 roadmap notes.
+- **Endpoints:** `POST /api/v1/events`; `GET /api/v1/events`; `GET /api/v1/events/:eventId`; `PATCH /api/v1/events/:eventId`; `PATCH /api/v1/events/:eventId/status`; `DELETE /api/v1/events/:eventId`.
+- **Important files created:** `server/src/modules/events/event.model.js`, `event.routes.js`, `event.controller.js`, `event.service.js`, `event.validation.js`, `server/test/events.integration.test.mjs`.
+- **Important files modified:** `server/src/routes/v1.js`, `server/src/shared/http/responses.js`, `server/package.json`, `docs/Make My Marriage api.md`, `docs/Backend Implementation Roadmap.md`, and this report.
+- **Dependencies introduced:** None.
+- **Tests and verification:** M6 integration suite passed (11/11) using `M6_TEST_MONGO_URI=mongodb://127.0.0.1:27017` and a generated disposable database, dropped after tests. Tests verify all six routes, required fields/status, time/date values, menus/Maps/YouTube, server-generated ownership, list filters/pagination, updates/video removal, reversible status transitions, Admin/Manager/anonymous and CSRF behavior, cross-Wedding isolation, invalid IDs, soft deletion, injected dependency-blocked deletion, and actual presence of the three documented Event indexes. Backend regression suite passed (25/25); M5 image integration regression passed (15/15). Server lint, root lint, frontend production build, and `git diff --check` passed.
+- **Lifecycle limitation:** No Task, Expense, Guest, RSVP, Invitation or Photo model existed before M6, so there were no real dependent product records to query. The tested dependency-check interface is ready for M7–M14 to extend; M15 must verify all linked record types together. The M2–M4 opt-in integration scripts were not rerun because their harnesses read the configured `.env` URI and this task prohibits remote database access; their previously recorded results remain in this report.
+- **Git state:** M6 and existing M5 changes remain uncommitted; no commit or push was made.
 - **Commit reference:** None — not committed.
 
 ### Future milestone record fields

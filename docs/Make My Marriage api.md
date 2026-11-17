@@ -169,7 +169,7 @@ Content-Type: multipart/form-data
 | ----- | ----- |
 | **Wedding date** | **YYYY-MM-DD** |
 | **Event date** | **YYYY-MM-DD** |
-| **Event time** | **HH** |
+| **Event time** | **24-hour HH:mm** |
 | **Timestamp** | **ISO 8601** |
 | **Timezone** | **IANA timezone** |
 
@@ -492,10 +492,29 @@ image: <file>
 **Backend:**
 
 1. **Verify admin permission.**  
-2. **Validate image type and size.**  
+2. **Validate JPEG, PNG or WebP content and enforce the 10 MB maximum.**
 3. **Upload new image to Cloudinary.**  
 4. **Update Wedding.coverImage.**  
 5. **Delete old Cloudinary asset only after the database update succeeds.**
+
+**If the database update fails after a successful upload, attempt to delete the newly uploaded asset. If Cloudinary cleanup fails, record the asset public ID and operation in structured server logs for manual retry. Do not expose the public ID to the client.**
+
+## **4.8 DELETE /weddings/me/cover-image**
+
+**Purpose: Remove the Wedding hero/cover image.**
+
+**Access: Admin only. Request body: none.**
+
+**Backend:**
+
+1. **Resolve the authenticated Admin's Wedding.**
+2. **Remove `Wedding.coverImage` from MongoDB first.**
+3. **After the database update succeeds, attempt to delete the Cloudinary asset.**
+4. **If no cover image exists, return the same successful result (idempotent).**
+
+**Cloudinary deletion failure does not restore the database reference. Record the asset public ID and operation in structured server logs for manual retry. Do not return the public ID.**
+
+**Success response: HTTP 200 using the standard response envelope, with `data.coverImage` set to `null`.**
 
 ## **4.7 Manager Invitation**
 
@@ -566,7 +585,7 @@ image: <file>
 1. **Authenticate the user.**  
 2. **Verify the role is ADMIN.**  
 3. **Resolve the user's wedding.**  
-4. **Validate the description length.**  
+4. **Validate that description is a string no longer than 1,000 characters.**
 5. **Update `Wedding.ourStory.description`.**  
 6. **Return the updated story.**
 
@@ -640,7 +659,7 @@ altText: "Rahul and Priya together"
 
 * **Maximum supporting images: 2\.**  
 * **JPEG, PNG and WebP.**  
-* **Proposed maximum: 10 MB per image.**  
+* **Maximum: 10 MB per image.**
 * **One upload per API request.**
 
 **The service must enforce the image limit under concurrent requests. A simple check followed by a later update is insufficient if two uploads can run simultaneously. Use an atomic conditional update or suitable transaction/locking strategy so the array cannot exceed two elements.**
@@ -684,7 +703,7 @@ DELETE /api/v1/weddings/me/our-story/images/STORY_IMAGE_ID
 }
 ```
 
-**If Cloudinary deletion fails after the database update, the public website must still stop referencing the removed image. The failed asset cleanup should be logged for retry.**
+**If Cloudinary deletion fails after the database update, the public website must still stop referencing the removed image. Record the asset public ID and operation in structured server logs for manual retry. Do not restore the database reference.**
 
 ## **5.5 Our Story Content Rules**
 
@@ -769,6 +788,7 @@ DELETE /api/v1/weddings/me/our-story/images/STORY_IMAGE_ID
   "eventDate": "2027-02-13",
   "startTime": "10:00",
   "endTime": "13:00",
+  "status": "UPCOMING",
   "venueName": "The Wedding Garden",
   "venueAddress": "Delhi, India",
   "googleMapsUrl": "https://maps.google.com/?q=example",
@@ -786,6 +806,10 @@ DELETE /api/v1/weddings/me/our-story/images/STORY_IMAGE_ID
   "isPublished": false
 }
 ```
+
+**`status` is required and must be `UPCOMING`, `COMPLETED`, or `CANCELLED`. The backend does not supply an undocumented default.**
+
+**Event times use 24-hour `HH:mm` format. Values such as `25:00` and `10:65` are invalid.**
 
 **Backend:**
 
@@ -918,6 +942,8 @@ GET /events?eventDate=2027-02-13
 **Cancelled events cannot accept new RSVPs.**
 
 **Existing RSVP records and financial references must remain intact.**
+
+**Any transition between `UPCOMING`, `COMPLETED`, and `CANCELLED` is allowed, including restoring a cancelled event. Values outside this enum are rejected.**
 
 ## **7.8 DELETE /events/**
 

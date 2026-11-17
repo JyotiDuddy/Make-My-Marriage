@@ -1,10 +1,10 @@
 # Make My Marriage — Backend Implementation Roadmap
 
-**Status:** Active roadmap — M1–M4 COMPLETED; M5 next
+**Status:** Active roadmap — M1–M6 COMPLETED
 **Source of truth:** Approved PRD v1.1, System Architecture v1.1, Database Design v1.2, API Design v1.1, plus confirmed planning decisions recorded in the Project Status Report.
 **Architecture:** CommonJS Node.js/Express modular monolith, MongoDB/Mongoose, REST API under `/api/v1`.
 
-This roadmap assigns the documented backend scope to 15 milestones. Milestones 1–4 are complete. Milestones 5–15 remain planned and must be implemented and verified one at a time. Tests are written with each milestone; Milestone 15 includes cross-module integration and CI/CD completion from the API design.
+This roadmap assigns the documented backend scope to 15 milestones. Milestones 1–6 are complete. Milestones 7–15 remain planned and must be implemented and verified one at a time. Tests are written with each milestone; Milestone 15 includes cross-module integration and CI/CD completion from the API design.
 
 ## Status and milestone tracking conventions
 
@@ -27,7 +27,6 @@ Mark a milestone **COMPLETED** only when its implementation and completion check
 - Event cancellation preserves RSVP and financial records; prefer cancellation when dependent records exist. Guest records with RSVP history are soft-deleted and their RSVP token revoked. Hard deletion is allowed only when safe and historical records need not be retained.
 - As Tasks, Expenses, Guests, Invitations, RSVPs and Photos gain Event references, their milestones must extend the Event deletion guard; M15 verifies cancellation/deletion against all dependent record types.
 - Unpublishing the public website must not automatically deactivate family RSVP links.
-- **Known contract gap — `DELETE /weddings/me/cover-image`:** the endpoint is listed, but request/response details and Cloudinary deletion behavior are not specified. Confirm its contract and asset cleanup semantics before implementing it; do not infer them from cover replacement or Our Story deletion.
 - **Known contract gap — guest photo upload:** `POST /public/weddings/:slug/photos` exists. The API gives general image guidance (JPEG/PNG/WebP and a proposed 10 MB gallery limit) but does not establish the complete guest-upload contract. Confirm its accepted formats and maximum size, request fields and response shape, event-association optionality, rate-limit and validation policy, Pending approval state, and Cloudinary failure/cleanup handling before implementing the guest upload. The API document does state that the wedding must be published, rate limiting applies, an optional event is validated, and new submissions are `PENDING`; retain those requirements. Do not add another endpoint.
 - Public invitation data is already specified across existing APIs: `GET /public/weddings/:slug` returns `commonInvitation`, and `GET /public/weddings/:slug/events` returns an event's `invitation` where present. Implement those existing contracts; do not add an endpoint.
 
@@ -39,8 +38,8 @@ Mark a milestone **COMPLETED** only when its implementation and completion check
 | 2 | Core Persistence Models | COMPLETED | User and Wedding Mongoose models and documented indexes |
 | 3 | Authentication, Sessions and Security | COMPLETED | Seven Admin authentication/session/CSRF/password endpoints |
 | 4 | Wedding Setup and Manager Onboarding | COMPLETED | Wedding setup/settings, Manager invitation and activation, publication control |
-| 5 | Wedding Images and Our Story | NOT STARTED | Hero/cover and Our Story image/content APIs with Cloudinary coordination |
-| 6 | Events and YouTube Metadata | NOT STARTED | Event CRUD, status, menus, venue and video metadata |
+| 5 | Wedding Images and Our Story | COMPLETED | Hero/cover and Our Story image/content APIs with Cloudinary coordination |
+| 6 | Events and YouTube Metadata | COMPLETED | Event CRUD, status, menus, venue and video metadata |
 | 7 | Shared Tasks | NOT STARTED | Task CRUD and optional event relationship |
 | 8 | Actual Expenses | NOT STARTED | Expense CRUD in integer paise |
 | 9 | Family Guests, CSV and Sharing | NOT STARTED | Family records, import, RSVP-link and invitation-sharing status |
@@ -197,64 +196,68 @@ The Manager assignment therefore occurs during invitation, before the activation
 
 ## Milestone 5 — Wedding Images and Our Story
 
-**Status:** NOT STARTED
-**Start/completion dates:** Not recorded
+**Status:** COMPLETED
+**Start date:** 2026-11-17
+**Completion date:** 2026-11-17 (MongoDB integration suite, regression tests, lint, build, and diff check passed)
 **Objective:** Implement the Wedding module's separate hero/cover asset and embedded Our Story content/supporting-image APIs.
 
-**Scope:** Cover image upload/replacement; cover removal only after its request/response and Cloudinary deletion contract is clarified; Our Story description update; add/remove up to two supporting photographs. Keep cover image separate from `ourStory.images` and both separate from Wedding Memories Photo records.
+**Scope completed:** Cover image upload/replacement and deletion; Our Story description update; upload and deletion of up to two supporting photographs. The approved cover deletion contract is recorded in API Design §4.8. Cover image remains separate from `ourStory.images` and both remain separate from Wedding Memories Photo records.
 
-**Expected files/responsibilities:** Wedding image/story routes, validators, controller/service and Cloudinary adapter under `server/src/modules/wedding/`; multipart parser/file validation configuration; tests for image content and asset cleanup. Keep Cloudinary credentials server-only.
+**Files/responsibilities:** `server/src/modules/wedding/wedding.routes.js` exposes the endpoints; `wedding.controller.js` handles HTTP envelopes; `wedding.service.js` scopes Wedding updates and coordinates MongoDB/Cloudinary; `image.validation.js` checks signatures and request fields; `server/src/middleware/image-upload.js` provides bounded multipart parsing; `server/src/shared/storage/cloudinary.adapter.js` is the injectable Cloudinary adapter. Integration and validation tests cover the implementation. Cloudinary credentials remain server-only.
 
-**Documented endpoints:** `PUT /weddings/me/cover-image`; `DELETE /weddings/me/cover-image` (listed endpoint; unresolved contract gap); `PATCH /weddings/me/our-story`; `POST /weddings/me/our-story/images`; `DELETE /weddings/me/our-story/images/:imageId`.
+**Implemented endpoints:** `PUT /weddings/me/cover-image`; `DELETE /weddings/me/cover-image`; `PATCH /weddings/me/our-story`; `POST /weddings/me/our-story/images`; `DELETE /weddings/me/our-story/images/:imageId`.
 
-**Dependencies:** M2 Wedding schema; M3 auth/CSRF; M4 wedding resolution and publication state. Cloudinary service configuration is required for integration tests or use a controllable adapter mock.
+**Dependencies:** M2 Wedding schema; M3 auth/CSRF; M4 wedding resolution and publication state. Added Cloudinary, Multer, and `file-type`. Tests inject a fake Cloudinary adapter; no live credentials are needed for the automated suite.
 
-**Security and data integrity:** Admin-only edits; JPEG/PNG/WebP and proposed 10 MB limits where documented; validate actual file content; enforce maximum two images under concurrent requests; upload new asset before DB replacement; delete old asset only after successful DB update; clean newly uploaded asset if DB update fails; for Our Story deletion remove DB reference first and log/retry Cloudinary cleanup failure. Never expose Cloudinary public IDs in public response.
+**Security and data integrity:** Admin-only edits with existing session, ownership, and CSRF checks; accept JPEG/PNG/WebP up to 10 MB and verify file signatures; enforce the two-image maximum with an atomic database condition; upload a replacement before database update and delete the old asset only after update succeeds; attempt compensating deletion if database persistence fails; remove database references before deleting Cloudinary assets; log cleanup failures with structured data for manual retry. Responses omit Cloudinary public IDs.
 
-**Required tests:** Cover upload/replacement, invalid type/oversized file, DB failure cleanup, old asset retained if DB update fails; Our Story description updates do not overwrite images; first/second image pass, third rejected including concurrent attempts; invalid/oversized file; remove by embedded ID; missing image 404; Cloudinary cleanup failure leaves no public reference and is recorded for retry; public field projection belongs to M15.
+**Verification:** M5 MongoDB integration suite: 15 passed. Backend non-integration suite: 25 passed. Image-validation unit suite: 6 passed. Server lint, root lint, frontend production build, and `git diff --check` passed. Integration tests use an isolated generated local database and a fake Cloudinary adapter.
 
 **Learning concepts:** Multipart processing, content-based file validation, embedded documents, race conditions, external asset lifecycle and compensating cleanup.
 
 **Completion checklist:**
 
-- [ ] Hero/cover and Our Story images use the unchanged documented Wedding structures and routes.
-- [ ] `DELETE /weddings/me/cover-image` behavior is not implemented until request/response and cleanup contract are approved.
-- [ ] The cover-removal contract is finalized, the existing DELETE route is implemented without changing its path, and its Cloudinary behavior is tested.
-- [ ] Cover replacement and Our Story compensation/cleanup tests pass.
-- [ ] Two-image rule is concurrency-safe.
-- [ ] Cloudinary identifiers/credentials are excluded from public payloads.
-- [ ] Lint/build/tests pass and report lists any cleanup limitations.
+- [x] Hero/cover and Our Story images use the unchanged documented Wedding structures and routes.
+- [x] The approved cover-removal contract is recorded in API Design §4.8 and implemented on the existing path.
+- [x] Cover removal and cleanup behavior, including idempotence and Cloudinary failure, is tested.
+- [x] Cover replacement and Our Story compensation/cleanup tests pass.
+- [x] Two-image rule is concurrency-safe, including concurrent upload attempts.
+- [x] Cloudinary identifiers/credentials are excluded from response payloads.
+- [x] Lint, build, unit tests, MongoDB integration tests, and diff check pass; live Cloudinary remains unverified and cleanup failures require manual retry.
 
 ---
 
 ## Milestone 6 — Events and YouTube Metadata
 
-**Status:** NOT STARTED
-**Start/completion dates:** Not recorded
+**Status:** COMPLETED
+**Start date:** 2026-11-17
+**Completion date:** 2026-11-17 (isolated MongoDB integration tests, backend regression tests, lint, build, and diff check passed)
 **Objective:** Implement wedding-scoped event scheduling, embedded menus, venue directions, publication/status and YouTube metadata.
 
-**Scope:** Event schema/indexes; create/list/read/update; status update; safe logical deletion; menu and Maps URL validation; video URL validation and backend video ID extraction. Event removal prefers cancellation where dependencies exist.
+**Scope completed:** Event schema and documented indexes; create/list/read/update/status/delete; pagination, filtering, menu and Google Maps URL validation; YouTube URL validation and server-side video ID extraction. Events are soft-deleted when no dependent records exist; deletion is rejected with a cancellation recommendation when an injected dependency check reports linked history.
 
-**Expected files/responsibilities:** `server/src/modules/events/{event.model.js,event.routes.js,event.controller.js,event.service.js,event.validation.js}` and shared URL/video validation only if reusable.
+**Files/responsibilities:** `server/src/modules/events/{event.model.js,event.routes.js,event.controller.js,event.service.js,event.validation.js}`; the service scopes every query to the Wedding resolved from session identity and exposes injectable dependency checks for later reference-owning modules.
 
-**Endpoints:** `POST /events`; `GET /events`; `GET /events/:eventId`; `PATCH /events/:eventId`; `PATCH /events/:eventId/status`; `DELETE /events/:eventId`.
+**Implemented endpoints:** `POST /api/v1/events`; `GET /api/v1/events`; `GET /api/v1/events/:eventId`; `PATCH /api/v1/events/:eventId`; `PATCH /api/v1/events/:eventId/status`; `DELETE /api/v1/events/:eventId`.
 
 **Dependencies:** M3 auth and M4 wedding context. Task/expense/guest/invitation/RSVP/photo relationships arrive in M7–M11 and M14. Each milestone that introduces one of these references must extend the event deletion guard and add its focused test; M15 performs the final cross-module lifecycle verification.
 
-**Security and data integrity:** Admin/Manager only; force `weddingId`/`createdBy`; verify same-wedding references; cancelled events reject new RSVPs; preserve dependent RSVP, expense, task, invitation and photo records; prefer cancellation where dependents exist; use `deletedAt` only when deletion is safe; accept LIVE/RECORDED with YOUTUBE only, extract video ID server-side.
+**Approved M6 clarifications:** Creation requires an explicit valid status; no default is introduced. `UPCOMING`, `COMPLETED`, and `CANCELLED` may transition in either direction, including restoring a cancelled event; other values are rejected. Event times are strict 24-hour `HH:mm`. These are recorded in API Design §2.8 and §7.
 
-**Required tests:** CRUD, filters/pagination, wedding isolation, menu and Maps validation, status values, cancellation behavior, deletion with/without each dependent record, soft delete, video URL parsing/types/removal and rejecting client-supplied videoId.
+**Security and data integrity:** Admin/Manager only; force `weddingId`/`createdBy`/`updatedBy` from authenticated context; reject client ownership fields; scope event reads and writes by Wedding; cancelled status does not mutate or remove linked history; soft-delete through `deletedAt`; check dependency callbacks before deletion; accept LIVE/RECORDED with YOUTUBE only and extract video ID server-side. No dependent product models existed in M1–M5; future modules must register their checks.
+
+**Verification:** M6 MongoDB integration suite passed (11 tests) against a generated loopback-only disposable database, dropped after testing. Backend non-integration regression suite passed (25 tests). Server lint, root lint, frontend production build, and `git diff --check` passed.
 
 **Learning concepts:** REST resource lifecycle, embedded menu data, query validation, lifecycle-aware deletion, URL parsing and derived fields.
 
 **Completion checklist:**
 
-- [ ] Event schema and documented indexes match Database Design §5.3.
-- [ ] All six endpoints and documented filters are implemented.
-- [ ] Same-wedding ownership checks apply to all event references.
-- [ ] Cancellation and `deletedAt` behavior work for the data currently present; later reference-owning milestones extend the deletion guard, and M15 verifies all dependency types together.
-- [ ] Video ID is extracted from an allowed YouTube URL on the server.
-- [ ] Tests, lint/build pass and completion record is updated.
+- [x] Event schema and documented indexes match Database Design §5.3.
+- [x] All six endpoints and documented filters are implemented.
+- [x] Same-wedding ownership checks apply to every event operation; Event has no client-selected ownership fields.
+- [x] Cancellation preserves linked history; deletion uses `deletedAt` when safe and rejects when an injected dependency check reports linked records. Later reference-owning milestones must extend the deletion guard, and M15 verifies all dependency types together.
+- [x] Video ID is extracted from a supported YouTube URL on the server; client-supplied video IDs are rejected.
+- [x] Integration/regression tests, lint/build and diff check pass; completion record is updated.
 
 ---
 
@@ -537,7 +540,7 @@ The Manager assignment therefore occurs during invitation, before the activation
 
 ## Endpoint coverage index
 
-Every endpoint listed in API Design v1.1 is assigned below. M1–M4 rows are complete; M5–M15 rows remain planned.
+Every endpoint listed in API Design v1.1 is assigned below. M1–M6 rows are complete; M7–M15 rows remain planned.
 
 | API group | Documented endpoints | Milestone |
 |---|---|---|
@@ -546,7 +549,7 @@ Every endpoint listed in API Design v1.1 is assigned below. M1–M4 rows are com
 | Auth — Manager activation | `POST /auth/manager-activation` | M4 (Auth module endpoint; complete) |
 | Wedding | `POST /weddings`; `GET /weddings/me`; `PATCH /weddings/me`; `PATCH /weddings/me/publication`; `POST /weddings/me/manager-invitation`; `POST /weddings/me/manager-invitation/resend` | M4 (complete) |
 | Wedding images and Our Story | `PUT /weddings/me/cover-image`; `DELETE /weddings/me/cover-image`; `PATCH /weddings/me/our-story`; `POST /weddings/me/our-story/images`; `DELETE /weddings/me/our-story/images/:imageId` | M5 |
-| Events | `POST /events`; `GET /events`; `GET /events/:eventId`; `PATCH /events/:eventId`; `PATCH /events/:eventId/status`; `DELETE /events/:eventId` | M6 |
+| Events | `POST /events`; `GET /events`; `GET /events/:eventId`; `PATCH /events/:eventId`; `PATCH /events/:eventId/status`; `DELETE /events/:eventId` | M6 (complete) |
 | Tasks | `POST /tasks`; `GET /tasks`; `GET /tasks/:taskId`; `PATCH /tasks/:taskId`; `DELETE /tasks/:taskId` | M7 |
 | Expenses | `POST /expenses`; `GET /expenses`; `GET /expenses/:expenseId`; `PATCH /expenses/:expenseId`; `DELETE /expenses/:expenseId` | M8 |
 | Guests | `POST /guests`; `GET /guests`; `GET /guests/:guestId`; `PATCH /guests/:guestId`; `DELETE /guests/:guestId`; `POST /guests/import`; `POST /guests/:guestId/rsvp-link`; `PATCH /guests/:guestId/invitation-sharing/common`; `PATCH /guests/:guestId/invited-events/:eventId/invitation-sharing` | M9 |
