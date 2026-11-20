@@ -1,10 +1,10 @@
 # Make My Marriage — Backend Implementation Roadmap
 
-**Status:** Active roadmap — M1–M6 COMPLETED
+**Status:** Active roadmap — M1–M14 COMPLETED; M15 NOT STARTED
 **Source of truth:** Approved PRD v1.1, System Architecture v1.1, Database Design v1.2, API Design v1.1, plus confirmed planning decisions recorded in the Project Status Report.
 **Architecture:** CommonJS Node.js/Express modular monolith, MongoDB/Mongoose, REST API under `/api/v1`.
 
-This roadmap assigns the documented backend scope to 15 milestones. Milestones 1–6 are complete. Milestones 7–15 remain planned and must be implemented and verified one at a time. Tests are written with each milestone; Milestone 15 includes cross-module integration and CI/CD completion from the API design.
+This roadmap assigns the documented backend scope to 15 milestones. Milestones 1–14 are complete. Milestone 15 remains planned and must be implemented and verified separately. Tests are written with each milestone; Milestone 15 includes cross-module integration and CI/CD completion from the API design.
 
 ## Status and milestone tracking conventions
 
@@ -27,7 +27,9 @@ Mark a milestone **COMPLETED** only when its implementation and completion check
 - Event cancellation preserves RSVP and financial records; prefer cancellation when dependent records exist. Guest records with RSVP history are soft-deleted and their RSVP token revoked. Hard deletion is allowed only when safe and historical records need not be retained.
 - As Tasks, Expenses, Guests, Invitations, RSVPs and Photos gain Event references, their milestones must extend the Event deletion guard; M15 verifies cancellation/deletion against all dependent record types.
 - Unpublishing the public website must not automatically deactivate family RSVP links.
-- **Known contract gap — guest photo upload:** `POST /public/weddings/:slug/photos` exists. The API gives general image guidance (JPEG/PNG/WebP and a proposed 10 MB gallery limit) but does not establish the complete guest-upload contract. Confirm its accepted formats and maximum size, request fields and response shape, event-association optionality, rate-limit and validation policy, Pending approval state, and Cloudinary failure/cleanup handling before implementing the guest upload. The API document does state that the wedding must be published, rate limiting applies, an optional event is validated, and new submissions are `PENDING`; retain those requirements. Do not add another endpoint.
+- **Approved M14 guest photo contract:** `POST /public/weddings/:slug/photos` accepts one multipart `image` file and optional `eventId`, with no other text fields; maximum size is 10 MB; accepted formats are JPEG/PNG/WebP with MIME and detected-content agreement; rate limit is 5 requests per 15 minutes per IP; success is HTTP 201 with only `data: { "status": "PENDING" }` in the standard envelope. The Wedding must be published; an optional Event must be valid and belong to that Wedding. Cloudinary failure returns 502 without a Photo record; persistence failure triggers best-effort deletion of the newly uploaded asset, and failed cleanup is logged for manual retry. Do not expose storage metadata or add another endpoint.
+- **Approved M9 operational decisions:** CSV import uses multipart field `file`, max 2 MiB and 500 data rows, the six documented columns, valid-row partial import, row-level reasons, non-blocking duplicate warnings, and summary fields `totalRows`, `importedCount`, `skippedCount`, `errors`, and `warnings`. RSVP tokens use 32 cryptographically random bytes, store only SHA-256 hashes, expire after 90 days, are replaced on regeneration, and are revoked when the Guest is deleted. Raw URLs are returned only by the successful generation/regeneration response. M11 public RSVP endpoints remain out of scope for M9.
+- **M9 mobile normalization convention:** Database Design §5.6 requires normalized mobile values without defining a canonical format. The user confirmed formatting-only normalization: trim and remove visual separators while preserving digits and an optional leading `+`, without adding a country code. Duplicate normalized mobile values produce warnings and do not reject creation.
 - Public invitation data is already specified across existing APIs: `GET /public/weddings/:slug` returns `commonInvitation`, and `GET /public/weddings/:slug/events` returns an event's `invitation` where present. Implement those existing contracts; do not add an endpoint.
 
 ## Milestone summary
@@ -40,14 +42,14 @@ Mark a milestone **COMPLETED** only when its implementation and completion check
 | 4 | Wedding Setup and Manager Onboarding | COMPLETED | Wedding setup/settings, Manager invitation and activation, publication control |
 | 5 | Wedding Images and Our Story | COMPLETED | Hero/cover and Our Story image/content APIs with Cloudinary coordination |
 | 6 | Events and YouTube Metadata | COMPLETED | Event CRUD, status, menus, venue and video metadata |
-| 7 | Shared Tasks | NOT STARTED | Task CRUD and optional event relationship |
-| 8 | Actual Expenses | NOT STARTED | Expense CRUD in integer paise |
-| 9 | Family Guests, CSV and Sharing | NOT STARTED | Family records, import, RSVP-link and invitation-sharing status |
-| 10 | Invitation Cards | NOT STARTED | Common and event card upload/list/removal |
-| 11 | Family RSVP | NOT STARTED | Token-protected read and event response APIs |
-| 12 | Dashboard Summary | NOT STARTED | Wedding-scoped dashboard aggregates |
-| 13 | Announcements | NOT STARTED | Announcement CRUD and publication state |
-| 14 | Wedding Memories and Photo Review | NOT STARTED | Organizer uploads, review, gallery and public guest submission |
+| 7 | Shared Tasks | COMPLETED | Shared task CRUD, filters and optional Event relationship |
+| 8 | Actual Expenses | COMPLETED | Wedding-scoped Expense CRUD in integer paise |
+| 9 | Family Guests, CSV and Sharing | COMPLETED | Guest CRUD, sharing, CSV import and RSVP-link generation |
+| 10 | Invitation Cards | COMPLETED | Common and event card upload/list/removal with Cloudinary coordination |
+| 11 | Family RSVP | COMPLETED | Token-protected read and event response APIs |
+| 12 | Dashboard Summary | COMPLETED | Wedding-scoped dashboard aggregates |
+| 13 | Announcements | COMPLETED | Wedding-scoped Announcement CRUD and publication state |
+| 14 | Wedding Memories and Photo Review | COMPLETED | Photo model, organizer workflows, Admin review and public guest submission |
 | 15 | Public Website APIs, Integration and CI/CD | NOT STARTED | Public homepage/events data and end-to-end/CI verification |
 
 ---
@@ -263,246 +265,289 @@ The Manager assignment therefore occurs during invitation, before the activation
 
 ## Milestone 7 — Shared Tasks
 
-**Status:** NOT STARTED
-**Start/completion dates:** Not recorded
-**Objective:** Implement the shared Admin/Manager task list with optional event association.
+**Status:** COMPLETED
+**Start date:** 2026-11-17
+**Completion date:** 2026-11-17 (isolated local MongoDB integration, M1–M6 regressions, lint, build, and diff checks passed)
+**Objective:** Implement the shared Admin/Manager task list with an optional Event association.
 
-**Scope:** Task model/indexes and create/list/read/update/delete; status, priority, deadline, and optional event validation. No assignment feature.
+**Implemented scope:** Task model with only Database Design §5.4 fields and indexes; create/list/read/update/delete; required ISO 8601 deadline with explicit timezone; documented status and priority enums; filtering, pagination, stable deadline ordering; optional same-Wedding Event references; server-derived ownership metadata; and Event deletion dependency enforcement. No assignment, reminder, notification, recurrence, or M8 functionality was added.
 
-**Expected files/responsibilities:** `server/src/modules/tasks/{task.model.js,task.routes.js,task.controller.js,task.service.js,task.validation.js}`.
+**Important files:** `server/src/modules/tasks/{task.model.js,task.validation.js,task.service.js,task.controller.js,task.routes.js}` and `server/test/tasks.integration.test.mjs`. The Event checker is wired in `server/src/routes/v1.js`; M2–M4 test harnesses were updated to accept explicit loopback-only URI overrides so regressions need not read `.env`.
 
-**Endpoints:** `POST /tasks`; `GET /tasks`; `GET /tasks/:taskId`; `PATCH /tasks/:taskId`; `DELETE /tasks/:taskId`.
+**Implemented endpoints:** `POST /api/v1/tasks`; `GET /api/v1/tasks`; `GET /api/v1/tasks/:taskId`; `PATCH /api/v1/tasks/:taskId`; `DELETE /api/v1/tasks/:taskId`.
 
-**Dependencies:** M3 auth, M4 wedding context, M6 Event model for optional same-wedding event reference.
+**Schema and indexes:** Required `weddingId`, `title`, `deadline`, `priority`, `status`, `createdBy`; optional `description`, `eventId`, `updatedBy`; Mongoose timestamps. Enums are `TODO`/`IN_PROGRESS`/`COMPLETED` and `LOW`/`MEDIUM`/`HIGH`. Indexes are exactly `{ weddingId: 1, status: 1, deadline: 1 }` and `{ weddingId: 1, eventId: 1 }`. No defaults, `assignedTo`, `deletedAt`, or additional indexes were introduced.
 
-**Security and data integrity:** Admin/Manager only; wedding-scoped filters; `createdBy` from session; no `assignedTo`; validate event belongs to same wedding; allow only documented TODO/IN_PROGRESS/COMPLETED and LOW/MEDIUM/HIGH values.
+**Dependencies:** M3 session authentication/role middleware; M4 Wedding identity resolution; M6 Event model and deletion guard. No package dependencies were added.
 
-**Required tests:** Create/list/filter/pagination/read/update/delete; role and wedding isolation; same-wedding and invalid event references; required deadline; enum and field allowlists.
+**Security and data integrity:** Admin and Manager share the Wedding task list. All operations are Wedding-scoped; `weddingId`, `createdBy`, and `updatedBy` are server-derived; mutations require CSRF. Event association rejects malformed, absent, deleted, and cross-Wedding Events; cancelled Events remain eligible because no contract restriction exists. Task deletion is hard deletion as specified by the schema/API. The M6 Event guard checks Task references and blocks deletion while a linked Task exists.
 
-**Learning concepts:** CRUD services, query filtering/pagination, reference validation, allowlisted partial updates.
+**Concurrency coordination:** Task creation or association changes that add an Event reference run in a MongoDB transaction and update the referenced Event's existing `updatedAt` value monotonically. This is a write to the common Event document coordinated with M6's `updatedAt` compare-and-set soft deletion; a transaction without that shared write would not close the race. No field, index, collection, lock service, or dependency was added. As a result, `Event.updatedAt` advances when its Task association is added or changed. The integration suite requires a MongoDB replica set; the temporary test replica set was loopback-only and separate from the existing MongoDB instance.
+
+**Required tests:** Schema fields/enums/timestamps and exact indexes; required input and deadline validation; optional, valid, invalid, missing, deleted and cross-Wedding Event references; Admin/Manager shared access; anonymous/CSRF rejection; ownership field rejection; filters/pagination/order; read/update allowlist and clearing optional values; hard deletion; same-Wedding isolation; Event cancellation/history preservation; Event deletion blocked by Task and allowed after Task removal; concurrent Task association/Event deletion invariant; M1–M6 regressions.
+
+**Verification:** M7 isolated MongoDB integration suite **8 passed**; M2 indexes **7 passed**; M3 auth **13 passed**; M4 Wedding **15 passed**; M5 image/Our Story **15 passed**; M6 Events **11 passed**; backend non-integration suite **25 passed**. Backend lint, root lint, frontend production build, and `git diff --check` passed. Test databases were generated and dropped on an isolated local replica set; the existing port 27017 MongoDB instance, `.env`, remote databases, and external services were not used.
+
+**Learning concepts:** Mongoose references/indexes, shared-role authorization, scoped queries, ISO timestamp validation, allowlisted PATCH handling, transactions and shared-document concurrency coordination.
 
 **Completion checklist:**
 
-- [ ] Task schema and indexes match Database Design §5.4.
-- [ ] All five documented endpoints work with documented filters.
-- [ ] Event is optional and, when set, belongs to the active wedding.
-- [ ] No assignment field or endpoint is added.
-- [ ] Tests/lint/build pass and status is recorded.
+- [x] Task schema and both indexes match Database Design §5.4 exactly.
+- [x] All five documented endpoints follow the approved request, response, filtering, and sorting contracts.
+- [x] Task ownership and creator/updater IDs come from the authenticated Wedding/session context.
+- [x] Event references are optional, validated, Wedding-scoped, and exclude soft-deleted Events.
+- [x] The default M6 Event service checks linked Tasks and preserves them on cancellation.
+- [x] Concurrent Task association and Event deletion cannot leave a successfully created Task pointing to a deleted Event.
+- [x] No task assignment or unapproved schema/index/dependency was introduced.
+- [x] M7/M1–M6 tests, lint, frontend build, and diff check pass; status report records results.
 
 ---
 
 ## Milestone 8 — Actual Expenses
 
-**Status:** NOT STARTED
-**Start/completion dates:** Not recorded
+**Status:** COMPLETED
+**Start date:** 2026-11-17
+**Completion date:** 2026-11-17 (isolated local MongoDB integration and M2–M7 regression suites, lint, build, and diff checks passed)
 **Objective:** Track actual wedding expenses, stored as integer paise.
 
-**Scope:** Expense model/indexes and create/list/read/update/delete, category/event/date filters, pagination, and optional event association. No budget planning or forecasting.
+**Implemented scope:** Added the Expense model with exactly the Database Design §5.5 fields and three indexes. Implemented create/list/read/partial-update/hard-delete, category/Event/date filters, pagination, stable payment-date ordering, optional Event association, integer paise validation, and Wedding-scoped access. No budgets, forecasts, or budget-versus-actual calculations were introduced.
 
-**Expected files/responsibilities:** `server/src/modules/expenses/{expense.model.js,expense.routes.js,expense.controller.js,expense.service.js,expense.validation.js}`.
+**Important files:** `server/src/modules/expenses/{expense.model.js,expense.routes.js,expense.controller.js,expense.service.js,expense.validation.js}`; `server/test/expenses.integration.test.mjs`.
 
-**Endpoints:** `POST /expenses`; `GET /expenses`; `GET /expenses/:expenseId`; `PATCH /expenses/:expenseId`; `DELETE /expenses/:expenseId`.
+**Endpoints:** `POST /api/v1/expenses`; `GET /api/v1/expenses`; `GET /api/v1/expenses/:expenseId`; `PATCH /api/v1/expenses/:expenseId`; `DELETE /api/v1/expenses/:expenseId`.
 
-**Dependencies:** M3 auth, M4 wedding context, M6 Event model.
+**Dependencies:** Existing M3 session authentication, CSRF and role checks; M4 Wedding context; M6 Event model/deletion guard; M7 transaction-based Event association coordination. No package dependencies were added.
 
-**Security and data integrity:** Admin/Manager only; positive integer `amountPaise`; INR; allowed categories only; same-wedding event validation; never trust body-supplied `weddingId`/`createdBy`.
+**Security and data integrity:** Admin and Manager share access to their Wedding's Expenses. `weddingId`, `createdBy`, and `updatedBy` are server-derived; mutations require CSRF; reads and writes are Wedding-scoped. Amounts must be safe positive integers in paise. Optional Event IDs must identify an active Event in the same Wedding; cancelled Events remain eligible. Client ownership metadata is rejected. Expense associations transactionally touch the existing Event `updatedAt` with the same M7 strategy used by Event deletion's compare-and-set; no competing lock or schema/index change was added. A linked Expense blocks Event deletion, and Event cancellation preserves Expense history.
 
-**Required tests:** CRUD, category/event/date filters, pagination, amount validation, event ownership, role/wedding isolation, paise preserved exactly.
+**API details left underspecified by API Design §9:** The section gives filter examples but no explicit sort order, does not enumerate PATCH fields, and does not show endpoint response objects. Implementation follows the established API envelope and adjacent modules: PATCH accepts editable Expense business fields only (not ownership or timestamp metadata), and list results are ordered by `paymentDate` descending with `_id` as a stable tie-breaker. Date filters use inclusive `YYYY-MM-DD` calendar days. No product requirement or endpoint was added; these conventions should be consolidated into the API contract before client integration if exact response/sort behavior is required.
 
-**Learning concepts:** Integer money representation, date filtering, schema/service validation, safe partial updates.
+**Required tests:** All five endpoints; exact Expense schema/indexes; required fields, category enum and positive integer paise; filtering/pagination/order; optional/same-Wedding Event associations and invalid/missing/deleted/cross-Wedding Event rejection; Admin/Manager shared access; anonymous, role, CSRF and cross-Wedding isolation; server-derived creator/updater; Event deletion guard, cancellation/history preservation, and concurrent Event association/deletion for both create and PATCH.
+
+**Verification:** M8 MongoDB integration **9/9** passed against a generated disposable database on a temporary loopback-only replica set; database was dropped afterward. M7 Tasks **8/8**, M6 Events **11/11**, M5 Wedding images/Our Story **15/15**, M4 Wedding/Manager **15/15**, M3 authentication **13/13**, M2 index enforcement **7/7**, and backend non-integration tests **25/25** passed. Backend lint, root lint, frontend production build, and `git diff --check` passed. Integration tests used explicit loopback-only test URI overrides; no remote MongoDB, real `.env` credentials, or external service was accessed.
 
 **Completion checklist:**
 
-- [ ] Expense schema/indexes match Database Design §5.5.
-- [ ] All five documented endpoints and filters work.
-- [ ] Money is stored and returned as paise without floating-point conversion errors.
-- [ ] Tests/lint/build pass; no budget fields/features are introduced.
+- [x] Expense schema and all three indexes match Database Design §5.5 exactly.
+- [x] All five documented Expense endpoints and category/Event/date filters are implemented.
+- [x] Integer paise validation and storage preserve exact values; no budget features are included.
+- [x] Admin/Manager authorization, CSRF, session authentication and Wedding isolation are covered by integration tests.
+- [x] Event references are optional, active, same-Wedding only; Event `updatedAt` transaction coordination reuses M7's race strategy.
+- [x] Linked Expenses prevent Event deletion; cancellation preserves Expense records.
+- [x] M8/M2–M7 tests, backend/root lint, frontend build, and diff check pass; status report records results.
 
 ---
 
 ## Milestone 9 — Family Guests, CSV and Sharing
 
-**Status:** NOT STARTED
-**Start/completion dates:** Not recorded
-**Objective:** Manage family invitation records, event invitations, CSV import and organizer-maintained sharing state.
+**Status:** COMPLETED
+**Start date:** 2026-11-17
+**Completion date:** 2026-11-18
+**Objective:** Manage family invitation records, event invitations and organizer-maintained sharing state, including approved CSV import and family RSVP-link generation.
 
-**Scope:** Guest model/indexes; create/list/read/update; safe deletion; CSV import; generate/regenerate family RSVP link; common and event invitation-sharing statuses. Keep guest contact data private. Do not implement RSVP read/write endpoints here.
+**Implemented scope:** Guest model with exact §5.6 fields/indexes; create/list/read/update/delete; search, Event and common invitation-status filters; pagination; formatting-only mobile normalization and non-blocking duplicate warnings; invited-Event validation and duplicate prevention; common and event invitation-sharing status; history-aware soft/hard deletion and token revocation; Event dependency guard integration and M7-style transactional coordination when adding Event references. Public RSVP read/write is excluded.
 
-**Expected files/responsibilities:** `server/src/modules/guests/{guest.model.js,guest.routes.js,guest.controller.js,guest.service.js,guest.validation.js,csv-import.service.js}`; use documented `csv-parse` dependency when installed for this milestone.
+**Completed scope:** `POST /guests/import` supports the approved 2 MiB/500-row limits, six CSV columns, partial valid-row import, non-sensitive row errors, duplicate warnings and import summary. `POST /guests/:guestId/rsvp-link` generates 32-byte cryptographically secure tokens, stores only SHA-256 hashes, expires tokens after 90 days, replaces previous token data, and returns the URL only in the successful response. Guest deletion revokes access. No public RSVP endpoints or actual RSVP submission were added.
 
-**Endpoints:** `POST /guests`; `GET /guests`; `GET /guests/:guestId`; `PATCH /guests/:guestId`; `DELETE /guests/:guestId`; `POST /guests/import`; `POST /guests/:guestId/rsvp-link`; `PATCH /guests/:guestId/invitation-sharing/common`; `PATCH /guests/:guestId/invited-events/:eventId/invitation-sharing`.
+**Additional API §10.3 ambiguity:** The API gives a `search` example but does not specify searched fields; implementation searches family name, primary contact and normalized mobile. It gives `invitationStatus` without saying whether it filters the common invitation or any event invitation; implementation maps it to the common `weddingInvitationStatus`. Guest response object fields and duplicate-warning placement are not shown; implementation uses the shared envelope with Guest fields and a `warnings` array in `data`. Confirm these conventions before relying on them in frontend integration.
 
-**Dependencies:** M3 auth/token primitives; M4 wedding context; M6 Event; M11 consumes the resulting RSVP token records.
+**Files/responsibilities:** `server/src/modules/guests/{guest.model.js,guest.routes.js,guest.controller.js,guest.service.js,guest.validation.js,csv-import.service.js,csv-upload.middleware.js}` and `server/test/guests.integration.test.mjs`; `server/package.json` and root `package-lock.json` add the documented `csv-parse` dependency. `server/src/routes/v1.js` mounts the Guest routes.
 
-**Security and data integrity:** One Guest represents one family; normalize mobile; detect likely duplicate mobile as warning per docs; validate every invited event belongs to wedding and prevent duplicate event refs; store only token hash, return raw URL once, regenerate revokes previous token; never expose RSVP token in ordinary Guest reads; preserve RSVP history and soft-delete family with RSVP history while revoking token; hard-delete only when safe; CSV row validation and safe limits must follow approved operational decisions.
+**Endpoints:** All nine documented endpoints are implemented: `POST /guests`; `GET /guests`; `GET /guests/:guestId`; `PATCH /guests/:guestId`; `DELETE /guests/:guestId`; `POST /guests/import`; `POST /guests/:guestId/rsvp-link`; `PATCH /guests/:guestId/invitation-sharing/common`; `PATCH /guests/:guestId/invited-events/:eventId/invitation-sharing`.
 
-**Required tests:** Guest CRUD/search/filter; event membership checks; duplicate event refs; mobile normalization/duplicate warning; CSV valid/invalid rows and import summary; deleted guest exclusion; safe/historical deletion; token generation/hash/expiry/regeneration/revocation; common/event sharing statuses, `sharedAt`/`sharedBy`; no token/contact leakage.
+**Dependencies:** M3 auth; M4 Wedding context; M6 Event model/deletion guard; M7 transaction coordination; `csv-parse` for CSV parsing. M11 may consume generated RSVP tokens through its future public endpoints; those endpoints are not part of M9.
 
-**Learning concepts:** Family aggregate modeling, soft deletion, token hash lifecycle, CSV validation, partial import reporting, privacy projection.
+**Security and data integrity:** Admin/Manager only; Wedding-scoped reads and writes; server-controlled ownership/audit fields; CSRF on mutations; serialized responses omit RSVP hashes/access data. Event references must be active and same-Wedding; duplicates are rejected. New Guest/Event relationships touch the existing Event `updatedAt` in the same MongoDB transaction as the Guest write, reusing M7/M8 deletion coordination. Guests with RSVP history are soft-deleted, preserve RSVP documents and have RSVP access revoked; Guests without history are hard-deleted. Duplicate normalized mobile values warn without rejecting creation. No WhatsApp sending is implemented.
+
+**Required tests:** Guest schema/indexes; CRUD/search/filter/pagination; normalization and duplicate warning; Event membership and duplicate references; privacy; deletion with/without RSVP history; token revocation on soft deletion; sharing status metadata; Admin/Manager, authentication, CSRF and Wedding isolation; Event deletion guard, cancellation and concurrent create/PATCH association versus deletion; CSV empty/malformed/unsupported/missing-header/oversize/row-limit/partial-import/duplicate-warning/privacy checks; RSVP URL generation, secure hash storage, 90-day expiry, replacement invalidation and deletion/expiry revocation.
+
+**Learning concepts:** Family aggregate modeling, soft deletion, privacy projection, partial indexes, transaction-based Event association safety and invitation-sharing state.
+
+**Verification:** M9 integration **16/16** passed against a generated disposable database on a temporary loopback-only replica set. Regression integration suites passed: M8 **9/9**, M7 **8/8**, M6 **11/11**, M5 **15/15**, M4 **15/15**, M3 **13/13**, M2 **7/7**. Backend non-integration tests **25/25**, backend lint, root lint, frontend production build, and `git diff --check` passed. An initial sandbox run was unable to connect to loopback (`EPERM`); rerunning with permission for local-only access to the disposable replica set passed. No remote database or real Cloudinary operation was used.
 
 **Completion checklist:**
 
-- [ ] Guest schema and indexes match Database Design §5.6.
-- [ ] All nine documented endpoints work; no WhatsApp sending endpoint is added.
-- [ ] CSV columns and import summary follow API contract.
-- [ ] RSVP access is hashed, one-time returned, expiring/revocable, and hidden from reads.
-- [ ] RSVP-history deletion preserves history and revokes access.
-- [ ] Tests/lint/build pass and operational limits are recorded.
+- [x] Guest schema and indexes match Database Design §5.6.
+- [x] All nine documented endpoints work.
+- [x] CSV columns, limits, duplicate handling, partial-import behavior and summary follow the approved M9 decisions.
+- [x] RSVP access is hash-stored, returned only on generation/regeneration, expires after 90 days, is revoked on replacement/deletion, and remains hidden from ordinary reads.
+- [x] RSVP-history deletion preserves history and revokes access; hard deletion occurs only when no history exists.
+- [x] All required tests/lint/build pass; operational limits and approved decisions are recorded.
 
 ---
 
 ## Milestone 10 — Invitation Cards
 
-**Status:** NOT STARTED
-**Start/completion dates:** Not recorded
+**Status:** COMPLETED
+**Start date:** 2026-11-18
+**Completion date:** 2026-11-18
 **Objective:** Upload, list, replace and remove one common card per wedding or one current card per event.
 
-**Scope:** Invitation model/indexes; multipart upload; COMMON/EVENT type handling; event validation; Cloudinary upload and replacement/deletion cleanup.
+**Implemented scope:** Invitation model with exactly the two partial unique indexes in Database Design §5.8; Admin/Manager multipart upload/list/delete; COMMON cards omit or null `eventId`; EVENT cards require a non-deleted Event in the same Wedding. Accepts JPEG/PNG/WebP and enforces the user-approved 10 MB per-image maximum with file-signature validation. Invitation metadata is stored in MongoDB and image bytes in Cloudinary only. Replacement updates the existing document, then deletes the previous Cloudinary asset; database failure triggers best-effort cleanup of the new asset. Deletion removes the document before asset cleanup. Cleanup failures use M5 structured logging/manual-retry conventions. No public Cloudinary ID is returned.
 
-**Expected files/responsibilities:** `server/src/modules/invitations/{invitation.model.js,invitation.routes.js,invitation.controller.js,invitation.service.js,invitation.validation.js}` and shared Cloudinary/file validation adapter.
+**Files/responsibilities:** `server/src/modules/invitations/{invitation.model.js,invitation.routes.js,invitation.controller.js,invitation.service.js,invitation.validation.js}`; shared `server/src/middleware/image-upload.js`, `server/src/modules/wedding/image.validation.js`, and `server/src/shared/storage/cloudinary.adapter.js` are reused. `server/src/routes/v1.js` mounts the module and registers its Event dependency guard. `server/test/invitations.integration.test.mjs` covers the module.
 
 **Endpoints:** `GET /invitations`; `POST /invitations`; `DELETE /invitations/:invitationId`.
 
-**Dependencies:** M3 auth; M4 wedding context; M6 Event; M9 family invitation-sharing state is a separate Guest workflow.
+**Dependencies:** M3 authentication/CSRF; M4 Wedding resolution; M5 shared image validation and Cloudinary adapter; M6 Event lifecycle; M9 Guest sharing remains a separate workflow. No dependency was added.
 
-**Security and data integrity:** Admin/Manager only; JPEG/PNG/WebP and documented proposed 10 MB limit; validate content; common invitation omits/nulls eventId; event invitation requires same-wedding event; enforce documented partial unique indexes; replace existing metadata and delete old asset only after successful DB update; coordinate DB and Cloudinary deletion.
+**Security and data integrity:** Admin/Manager only; authentication and CSRF precede upload parsing; scope records by Wedding from authenticated identity; do not accept client ownership fields; validate content signatures and MIME match; omit storage public IDs from response payloads; enforce exact partial unique indexes. EVENT association writes transactionally touch the existing Event `updatedAt`, reusing M7–M9 coordination with M6's compare-and-set deletion. Concurrent replacement checks references before asset cleanup so an asset still referenced by a current Invitation is not deleted. Event cancellation leaves invitation metadata/assets intact.
 
-**Required tests:** Common and event upload, invalid type/size, event ownership, duplicate prevention, replacement, cleanup after database failure, remove asset/document, invitation ownership, permission and wedding isolation.
+**Required tests:** COMMON and EVENT upload; missing/invalid type and Event IDs; cross-Wedding/deleted Event; invalid MIME/signature; 10 MB oversize; missing image; exact model/index definitions and actual index creation; replacement in place and old-asset cleanup after database update; cleanup of new asset on DB failure; safe deletion and cleanup failure logging; invalid/missing/cross-Wedding Invitation ID; list pagination and Wedding isolation; Admin/Manager permission, anonymous denial and CSRF; Event deletion guard/cancellation; race where upload shares Event with deletion; deletion during in-flight upload; concurrent replacement.
 
 **Learning concepts:** Multipart uploads, partial unique indexes, external storage compensation, metadata vs binary storage.
 
+**Verification:** M10 MongoDB integration **19/19** passed on a generated disposable database using the existing loopback-only replica set and fake Cloudinary adapter. M9 **16/16**, M8 **9/9**, M7 **8/8**, M6 **11/11**, M5 **15/15**, M4 **15/15**, M3 **13/13**, M2 **7/7** integration tests passed. Backend non-integration tests **25/25**, backend lint, root lint, frontend production build, and `git diff --check` passed. No real Cloudinary credentials/assets or remote MongoDB were used.
+
 **Completion checklist:**
 
-- [ ] Invitation schema and partial unique indexes match Database Design §5.8.
-- [ ] All three documented endpoints work.
-- [ ] Common/event association rules and media checks are enforced.
-- [ ] Replacement/deletion preserve records and clean assets only in documented order.
-- [ ] Tests/lint/build pass; no invitation designer or family-personalized card feature is added.
+- [x] Invitation schema and partial unique indexes match Database Design §5.8.
+- [x] All three documented endpoints work.
+- [x] Common/event association rules and media checks are enforced.
+- [x] Replacement/deletion preserve metadata and clean assets only in documented order.
+- [x] Tests/lint/build pass; no invitation designer or family-personalized card feature is added.
 
 ---
 
 ## Milestone 11 — Family RSVP
 
-**Status:** NOT STARTED
-**Start/completion dates:** Not recorded
+**Status:** COMPLETED
+**Start/completion dates:** 2026-11-18 / 2026-11-18
 **Objective:** Let a family with a valid token view only its invited events and create/update its current event responses.
 
-**Scope:** RSVP model/indexes; token-protected lookup; event-wise YES/NO upsert; expiry/revocation checks and strict public response projection. Family RSVP remains available independently of website publication.
+**Implemented scope:** Added the Database Design §5.7 RSVP model and both documented indexes; implemented token-protected family lookup and event-wise YES/NO creation/update; validated expiry, revocation, active Guest status, invitation membership and same-Wedding active Event; excluded cancelled/deleted Events from the family view; RSVP works when the Wedding site is unpublished.
 
-**Expected files/responsibilities:** `server/src/modules/rsvp/{rsvp.model.js,rsvp.routes.js,rsvp.controller.js,rsvp.service.js,rsvp.validation.js}` plus token rate-limit/security middleware as finalized.
+**Files/responsibilities:** `server/src/modules/rsvp/{rsvp.model.js,rsvp.routes.js,rsvp.controller.js,rsvp.service.js,rsvp.validation.js}`; `server/src/config/env.js` and shared rate-limit middleware configure the approved per-IP protection; `server/src/routes/v1.js` mounts the public routes and adds RSVP to the Event dependency guard; `server/test/rsvp.integration.test.mjs` exercises the module. M9 Guest deletion now uses a MongoDB transaction so a concurrent RSVP cannot leave a hard-deleted Guest with RSVP history.
 
-**Endpoints:** `GET /public/rsvp/:token`; `PUT /public/rsvp/:token/events/:eventId`.
+**Implemented endpoints:** `GET /api/v1/public/rsvp/:token`; `PUT /api/v1/public/rsvp/:token/events/:eventId`.
 
 **Dependencies:** M3 token/security primitives; M6 Event; M9 Guest and generated token; published-site state is intentionally not a prerequisite for valid family RSVP.
 
-**Security and data integrity:** Hash submitted token and check expiry/revocation; protect against token guessing with finalized rate limits; do not reveal if a guessed token maps to another family; return only the matching family's event and response data, never contacts or other families; require invited event in same wedding; reject cancelled/deleted events; unique `{weddingId, guestId, eventId}` enforces one current response; token page strict referrer policy; avoid raw-token logging.
+**Security and data integrity:** Reuse M9 SHA-256 token hashing and 32-byte base64url token format; require an active, non-deleted Guest and unexpired, unrevoked token. Malformed, unknown, expired, revoked, regenerated and deleted-family tokens use the same 404 `TOKEN_INVALID` response. The user approved 20 requests per 15 minutes per IP separately for each endpoint; server variables `PUBLIC_RSVP_GET_RATE_LIMIT_MAX`, `PUBLIC_RSVP_PUT_RATE_LIMIT_MAX` and `PUBLIC_RSVP_RATE_LIMIT_WINDOW_MS` configure the limits. Responses set `Referrer-Policy: no-referrer`, omit contacts/token metadata/other-family records, and do not require organizer sessions or CSRF because the routes use the family bearer token. The public view includes only that Guest's invited, active, non-cancelled Events. A response write revalidates the Guest and Event in a transaction, coordinates on existing `Event.updatedAt` with M6 deletion/other Event-reference writes, and uses the unique `{weddingId, guestId, eventId}` index; cancellation retains existing RSVP records.
 
-**Required tests:** Valid/invalid/expired/revoked token; rate limit and guessing protection; invited/uninvited/cross-wedding event; cancelled/deleted event; GET reveals only that family; create/update YES/NO; concurrent duplicate prevention; RSVP works when website unpublished; no contact or other-family data leaks.
+**Tests and verification:** M11 integration **8/8** passed against a generated disposable database on the local loopback replica set; the test database was dropped. Covers exact schema/indexes, valid/malformed/unknown/expired/revoked/regenerated/deleted-family tokens, both endpoint rate limits and the configured 20/15-minute values, response privacy, unpublished-site access, invitation/same-Wedding/Event status checks, anonymous bearer access without CSRF, create/update/idempotent responses, concurrency, Event deletion protection and cancellation preservation. Regression integrations passed: M10 **19/19**, M9 **16/16**, M8 **9/9**, M7 **8/8**, M6 **11/11**, M5 **15/15**, M4 **15/15**, M3 **13/13**, M2 **7/7**. Backend non-integration tests **25/25**, backend lint, root lint, frontend production build, and `git diff --check` passed. Cloudinary and other external services were not used.
 
 **Learning concepts:** Bearer-token security, upsert/idempotency, compound unique constraints, authorization without accounts, public endpoint privacy.
 
 **Completion checklist:**
 
-- [ ] RSVP schema/index match Database Design §5.7.
-- [ ] Both documented routes and response shapes are implemented.
-- [ ] Token and event authorization rules are enforced server-side.
-- [ ] One current response per invited family-event pair is maintained.
-- [ ] Security tests cover token guessing, response privacy, and publication independence.
-- [ ] Tests/lint/build pass and status is recorded.
+- [x] RSVP schema/index match Database Design §5.7.
+- [x] Both documented routes and response shapes are implemented.
+- [x] Token and event authorization rules are enforced server-side.
+- [x] One current response per invited family-event pair is maintained.
+- [x] Security tests cover token guessing, response privacy, and publication independence.
+- [x] Tests/lint/build pass and status is recorded.
 
 ---
 
 ## Milestone 12 — Dashboard Summary
 
-**Status:** NOT STARTED
-**Start/completion dates:** Not recorded
+**Status:** COMPLETED
+**Start/completion dates:** 2026-11-18 / 2026-11-18
 **Objective:** Provide the dashboard summary as calculated data without a Dashboard collection.
 
-**Scope:** Aggregate total/upcoming events, actual expenses, active family records, accepted and pending family-event RSVPs, and upcoming task deadlines. Pending RSVP count means invited family-event pairs with no response.
+**Implemented scope:** Added `GET /api/v1/dashboard/summary` with exactly the seven fields in API Design §6. Counts and sums are calculated from existing Event, Expense, Guest, RSVP and Task collections. No Dashboard model or collection was added. PRD FR-02's recent-record-updates item is deferred to a later approved API contract, as confirmed during M12 implementation.
 
-**Expected files/responsibilities:** `server/src/modules/dashboard/{dashboard.routes.js,dashboard.controller.js,dashboard.service.js}`; aggregate from Event, Expense, Guest, RSVP and Task models. Do not create a Dashboard model.
+**Files/responsibilities:** `server/src/modules/dashboard/{dashboard.routes.js,dashboard.controller.js,dashboard.service.js}`; `server/src/routes/v1.js` registers the endpoint; `server/test/dashboard.integration.test.mjs` covers aggregation and security.
 
-**Endpoint:** `GET /dashboard/summary`.
+**Implemented endpoint:** `GET /api/v1/dashboard/summary`.
+
+**Response fields:** `totalEvents`, `upcomingEvents`, `totalExpensesPaise`, `totalFamilies`, `acceptedRsvps`, `pendingRsvps`, and `upcomingTasks`, within the standard success envelope.
+
+**Calculation definitions confirmed for M12:** `totalEvents` includes all non-deleted Events, including COMPLETED and CANCELLED historical records. `upcomingEvents` counts non-deleted Events whose status is UPCOMING and whose local event date/time in the Wedding timezone is at or after the current instant. `totalExpensesPaise` sums all Wedding Expenses as integer paise. `totalFamilies` counts non-deleted Guest family records. Accepted and pending RSVP metrics count active invited Guest–Event pairs only, excluding deleted Guests and deleted/CANCELLED Events; YES is accepted, no response is pending, and NO is neither. Duplicate invitation references do not multiply a family–Event pair. `upcomingTasks` is a count of TODO/IN_PROGRESS tasks with deadline at or after the current instant; Date deadlines are compared as absolute instants, and Tasks associated with deleted, CANCELLED, or cross-Wedding Events are excluded. No task list, deadline window, or task ordering is returned.
 
 **Dependencies:** M3 authentication and M6 Events, M7 Tasks, M8 Expenses, M9 Guests, and M11 RSVP data. This places aggregation after its source modules; M12 does not depend on Announcements (M13) or Photos (M14), so those milestones do not need to precede the dashboard.
 
-**Security and data integrity:** Admin/Manager only; derive wedding from identity; every aggregate filters by that wedding; count families and family-event responses, not individual attendees; exclude deleted guest/event records according to their lifecycle rules.
+**Security and data integrity:** Admin/Manager only; derive Wedding ownership from authenticated identity; every query is scoped to that Wedding; client-supplied Wedding IDs are ignored; return only aggregate values; count families and family-event responses, not individual attendees; exclude soft-deleted Guest and deleted Event records.
 
-**Required tests:** Each aggregate, upcoming/date boundaries in wedding timezone, pending family-event pair count, wedding isolation, role checks, empty collections, cancelled/deleted handling.
+**Tests and verification:** M12 MongoDB integration **8/8** passed against a generated disposable database on the local loopback replica set; database dropped after testing. Tests cover empty collections, exact response keys, event status/deletion and local-time boundaries in Asia/Kolkata and America/Los_Angeles, integer paise totals, active/soft-deleted family records, accepted/pending YES/NO family–Event pairs including duplicate invitations, upcoming Task statuses/deadlines/Event eligibility, Admin/Manager and invalid-role authorization, anonymous denial, client Wedding-ID isolation, and private-data exclusion. M11 **8/8**, M10 **19/19**, M9 **16/16**, M8 **9/9**, M7 **8/8**, M6 **11/11**, M5 **15/15**, M4 **15/15**, M3 **13/13**, and M2 **7/7** integration suites passed against local disposable databases. M9 and M10 initially encountered replica-set contention when suites ran concurrently, then passed on sequential reruns. Backend non-integration **25/25**, backend lint, root lint, frontend production build, and `git diff --check` passed.
 
 **Learning concepts:** MongoDB aggregation, count semantics, timezone-aware queries, preventing cross-wedding leakage.
 
 **Completion checklist:**
 
-- [ ] Documented summary fields and family-based count definitions are returned.
-- [ ] No Dashboard collection is created.
-- [ ] All queries are wedding-scoped and role-protected.
-- [ ] Aggregation tests cover empty, boundary and isolation cases.
-- [ ] Lint/build/tests pass; dependencies and completion are recorded.
+- [x] Documented summary fields and family-based count definitions are returned.
+- [x] No Dashboard collection is created.
+- [x] All queries are wedding-scoped and role-protected.
+- [x] Aggregation tests cover empty, boundary and isolation cases.
+- [x] Lint/build/tests pass; dependencies and completion are recorded.
 
 ---
 
 ## Milestone 13 — Announcements
 
-**Status:** NOT STARTED
-**Start/completion dates:** Not recorded
+**Status:** COMPLETED
+**Start/completion dates:** 2026-11-18
 **Objective:** Manage wedding announcements and publish only approved public content.
 
-**Scope:** Announcement model/index; Admin/Manager create/list/read/update/delete; DRAFT/PUBLISHED state and timestamp; wedding-scoped authorization. Public read endpoint is exposed in M15.
+**Implemented scope:** Added the Database Design §5.10 Announcement model and its documented compound index; implemented all five Admin/Manager management endpoints with DRAFT/PUBLISHED state, Wedding-scoped authorization, server-derived audit fields, status filtering and pagination. Public read remains assigned to M15.
 
-**Expected files/responsibilities:** `server/src/modules/announcements/{announcement.model.js,announcement.routes.js,announcement.controller.js,announcement.service.js,announcement.validation.js}`.
+**Files created:** `server/src/modules/announcements/{announcement.model.js,announcement.routes.js,announcement.controller.js,announcement.service.js,announcement.validation.js}`; `server/test/announcements.integration.test.mjs`.
 
-**Endpoints:** `POST /announcements`; `GET /announcements`; `GET /announcements/:announcementId`; `PATCH /announcements/:announcementId`; `DELETE /announcements/:announcementId`.
+**Files modified:** `server/src/routes/v1.js`, `server/package.json`, `docs/Make My Marriage api.md`, and `docs/Make My Marriage Project Status Report.md`.
+
+**Endpoints:** `POST /announcements`; `GET /announcements`; `GET /announcements/:announcementId`; `PATCH /announcements/:announcementId`; `DELETE /announcements/:announcementId` (mounted under `/api/v1`). No public endpoint was added.
 
 **Dependencies:** M3 auth; M4 wedding context; M15 public website API consumes the published projection.
 
-**Security and data integrity:** Admin/Manager only for management; derive creator from session; restrict status values; set/maintain `publishedAt`; never expose DRAFT content publicly; all records scoped to wedding.
+**Security and data integrity:** Admin/Manager only for management; creator and Wedding come from authenticated ownership context; reject client-controlled ownership/audit fields; restrict status to the documented enum; all reads and writes are Wedding-scoped. No response includes `weddingId`. Public read remains unimplemented until M15 and must return only PUBLISHED content.
 
-**Required tests:** CRUD, filters/pagination, allowed states, publishedAt transitions, role/wedding isolation, deleted/not found, public projection tests in M15.
+**Approved M13 contract clarifications:** A DRAFT→PUBLISHED transition sets `publishedAt` to the new publish time; unpublishing removes it; edits while still PUBLISHED preserve it; republishing after unpublishing uses a fresh timestamp. Management listing sorts by `updatedAt` descending, then `_id` descending. Title and description are required nonempty strings; no undocumented maximum lengths are imposed.
+
+**Dependencies introduced:** None.
+
+**Tests and verification:** M13 local MongoDB integration **6/6** passed against a generated disposable database on the loopback replica set; database dropped after the run. Tests verify schema fields/index, create validation and server-controlled fields, status filtering/pagination/order and Wedding isolation, read behavior, publication timestamp transitions including republishing, protected update fields, deletion/not-found behavior, Admin/Manager access, anonymous denial, CSRF, and that no M13 public route was added. M2–M12 regression integrations all passed sequentially: M12 **8/8**, M11 **8/8**, M10 **19/19**, M9 **16/16**, M8 **9/9**, M7 **8/8**, M6 **11/11**, M5 **15/15**, M4 **15/15**, M3 **13/13**, M2 **7/7**. Backend non-integration tests **25/25**, backend lint, root lint, frontend production build, and `git diff --check` passed. No remote database or external service was used.
 
 **Learning concepts:** Publication state machines, audit metadata, scoped queries, separating private management views from public projections.
 
 **Completion checklist:**
 
-- [ ] Announcement schema/index match Database Design §5.10.
-- [ ] All five documented management endpoints work.
-- [ ] DRAFT/PUBLISHED and publishedAt behavior is correct.
-- [ ] Public endpoint remains assigned to M15 and returns only published entries.
-- [ ] Tests/lint/build pass; status is recorded.
+- [x] Announcement schema/index match Database Design §5.10.
+- [x] All five documented management endpoints work.
+- [x] DRAFT/PUBLISHED and approved publishedAt behavior is correct.
+- [x] Public endpoint remains assigned to M15; M13 adds no public route.
+- [x] Integration/regression tests, lint, build and diff check pass; status is recorded.
 
 ---
 
 ## Milestone 14 — Wedding Memories and Photo Review
 
-**Status:** NOT STARTED
-**Start/completion dates:** Not recorded
-**Objective:** Manage organiser photographs, admin review, approved gallery data and the existing guest photo submission endpoint.
+**Status:** COMPLETED
+**Start date:** 2026-11-19
+**Completion date:** 2026-11-20
+**Objective:** Manage organizer photographs, Admin review, approved gallery data and the existing guest photo submission endpoint.
 
-**Scope:** Photo model/indexes; Admin/Manager list/read/upload/delete; admin-only review; guest submission at the documented route only. The public approved gallery read API is assigned to M15. The guest upload request/response and operational details listed under contract gaps must be confirmed before guest upload is implemented; organiser upload and review work can proceed independently.
+**Implemented scope:** Photo model and documented indexes; Admin/Manager Wedding-scoped list/read/upload/delete; Admin-only one-time review of pending guest submissions; public guest submissions forced to PENDING; approved-only public projection helper for M15; Event dependency guard and transaction coordination for Event-associated uploads. All six M14 endpoints are implemented. The public approved-gallery GET remains assigned to M15.
 
-**Expected files/responsibilities:** `server/src/modules/photos/{photo.model.js,photo.routes.js,photo.controller.js,photo.service.js,photo.validation.js}`; multipart validation, rate-limit and Cloudinary adapter integration.
+**Files created:** `server/src/modules/photos/{photo.model.js,photo.routes.js,photo.controller.js,photo.service.js,photo.validation.js}` and `server/test/photos.integration.test.mjs`.
 
-**Endpoints:** `GET /photos`; `GET /photos/:photoId`; `POST /photos`; `PATCH /photos/:photoId/review`; `DELETE /photos/:photoId`; `POST /public/weddings/:slug/photos` (existing documented endpoint; no substitute endpoint).
+**Files modified for M14:** `server/src/config/env.js`, `server/.env.example`, `server/src/routes/v1.js`, `server/package.json`, API Design §13 (approved M14 clarifications), this roadmap, and the Project Status Report. Existing unrelated worktree changes were preserved.
 
-**Dependencies:** M3 auth; M4 wedding/publication; M6 Event for optional event reference. M15 consumes the approved-photo service for public reads.
+**Implemented endpoints:** `GET /api/v1/photos`; `GET /api/v1/photos/:photoId`; `POST /api/v1/photos`; `PATCH /api/v1/photos/:photoId/review`; `DELETE /api/v1/photos/:photoId`; `POST /api/v1/public/weddings/:slug/photos`.
 
-**Security and data integrity:** Organizer uploads set uploader type from session and are APPROVED; guest uploads must be PENDING and cannot choose status; only Admin approves/rejects; manager cannot review; public reads never expose Pending/Rejected; published wedding required for guest submission and public gallery; rate-limit and actual file validation; Cloudinary and Mongo cleanup/failure policy for guest upload must await contract clarification.
+**Schema and indexes:** Photo matches Database Design §5.9 fields, enum values and timestamps. The exact indexes are `{ weddingId: 1, status: 1, createdAt: -1 }` and `{ weddingId: 1, eventId: 1, status: 1 }`; no other Photo indexes were added.
 
-**Required tests:** Organizer upload and role checks; list/read filters; review allowlist and reviewer metadata; manager approval denied; public approved-only projection; guest submission only for published wedding, optional event validation if confirmed, rate limit, status forced Pending, file validation, Cloudinary failure/cleanup, no guest-supplied status, cross-wedding event rejection, deletion coordination.
+**Dependencies:** No new dependency was introduced. M3 auth/CSRF and rate limiting, M4 wedding/publication, M6 Event validation and transaction coordination, existing image validation and Cloudinary adapters are reused. M15 consumes the approved-photo service for public reads.
 
-**Learning concepts:** Review workflows, untrusted multipart input, state transitions, public/private projections, compensating external-service operations.
+**Security and data integrity:** Organizer routes require authenticated Admin/Manager and CSRF for mutations. Wedding, uploader type/user, and organizer APPROVED status are server-derived. Upload validates image contents and MIME agreement for JPEG/PNG/WebP and enforces the approved 10 MB per-photo limit. Guest uploads accept one multipart `image` file plus optional `eventId`, require a published Wedding, use 5 requests per 15 minutes per IP, and return only the approved minimal status response. Optional Event IDs must identify a non-deleted Event in the same Wedding. Associated uploads use the existing Event `updatedAt` transactional coordination; linked Photo records block unsafe Event deletion, and cancellation preserves them. Only Admin can make a one-time decision on a GUEST photo while it is PENDING; decisions are APPROVED or REJECTED and set `reviewedBy`/`reviewedAt`. Responses omit Cloudinary `storagePublicId`. M15 must use the approved-only projection and require a published Wedding.
+
+**Cloudinary behavior:** Upload precedes MongoDB persistence; upload failure returns 502 and creates no Photo record. If persistence fails after upload, the service attempts to delete the newly uploaded asset. Photo deletion removes the database document, then deletes the Cloudinary asset only if unreferenced. Cleanup failure is logged for manual retry without undoing the completed database operation. Automated tests use a fake adapter; live Cloudinary credentials were not used.
+
+**Integration tests and verification:** M14 integration suite **16/16** passed against a generated disposable database using a loopback-only MongoDB replica set. It covers schema and actual indexes; organizer and guest upload; MIME/content and size validation; auth/roles/CSRF/rate limiting; Wedding and Event isolation; minimal public response and PENDING state; Admin-only one-time review; Cloudinary failure and cleanup compensation; Event deletion/cancellation and concurrent association/deletion; and absence of the M15 public gallery route. Regression suites M2–M13 all passed sequentially: M13 **6/6**, M12 **8/8**, M11 **8/8**, M10 **19/19**, M9 **16/16**, M8 **9/9**, M7 **8/8**, M6 **11/11**, M5 **15/15**, M4 **15/15**, M3 **13/13**, M2 **7/7** (129 total). Backend non-integration tests **25/25** passed. Backend lint, root lint, frontend production build and `git diff --check` passed. Tests used disposable local databases and a fake Cloudinary adapter; no remote MongoDB or real Cloudinary operations were used.
+
+**Learning concepts:** Review workflows, untrusted multipart input, state transitions, public/private projections, rate limiting, and compensating external-service operations.
 
 **Completion checklist:**
 
-- [ ] Photo schema/indexes match Database Design §5.9.
-- [ ] Five organizer/review/delete endpoints work with role and wedding scopes; public gallery GET remains assigned to M15.
-- [ ] Public guest POST remains exactly `POST /public/weddings/:slug/photos`.
-- [ ] Guest photo contract gaps are resolved before implementing guest upload behavior.
-- [ ] Only APPROVED photos are publicly available; guest records start PENDING.
-- [ ] Cloudinary failure cleanup and rate-limit tests pass for the approved contract.
-- [ ] Tests/lint/build pass and remaining risks are recorded.
-
----
+- [x] Photo schema/indexes match Database Design §5.9.
+- [x] All six documented M14 endpoints are implemented with the approved authorization and Wedding-scoping rules.
+- [x] Organizer and guest uploads enforce the approved formats, MIME/content checks and 10 MB limits.
+- [x] Guest upload implements the approved multipart shape, published-Wedding/Event checks, per-IP limit, minimal response and PENDING state.
+- [x] Admin review is one-time and limited to pending GUEST photos; Manager review is denied.
+- [x] Cloudinary failure, persistence compensation, deletion cleanup and cleanup logging are covered with fake-adapter tests.
+- [x] Event deletion guard includes Photos; cancellation preserves historical Photo records; concurrent association/deletion behavior is tested.
+- [x] M14 integration, M2–M13 regressions, backend non-integration tests, backend/root lint, frontend build and diff check pass.
+- [x] Approved M14 contract clarifications are recorded in API Design §13; M15 public gallery GET remains unimplemented.
 
 ## Milestone 15 — Public Website APIs, Integration and CI/CD
 
@@ -540,7 +585,7 @@ The Manager assignment therefore occurs during invitation, before the activation
 
 ## Endpoint coverage index
 
-Every endpoint listed in API Design v1.1 is assigned below. M1–M6 rows are complete; M7–M15 rows remain planned.
+Every endpoint listed in API Design v1.1 is assigned below. M1–M14 are complete; M15 remains not started.
 
 | API group | Documented endpoints | Milestone |
 |---|---|---|
@@ -550,10 +595,10 @@ Every endpoint listed in API Design v1.1 is assigned below. M1–M6 rows are com
 | Wedding | `POST /weddings`; `GET /weddings/me`; `PATCH /weddings/me`; `PATCH /weddings/me/publication`; `POST /weddings/me/manager-invitation`; `POST /weddings/me/manager-invitation/resend` | M4 (complete) |
 | Wedding images and Our Story | `PUT /weddings/me/cover-image`; `DELETE /weddings/me/cover-image`; `PATCH /weddings/me/our-story`; `POST /weddings/me/our-story/images`; `DELETE /weddings/me/our-story/images/:imageId` | M5 |
 | Events | `POST /events`; `GET /events`; `GET /events/:eventId`; `PATCH /events/:eventId`; `PATCH /events/:eventId/status`; `DELETE /events/:eventId` | M6 (complete) |
-| Tasks | `POST /tasks`; `GET /tasks`; `GET /tasks/:taskId`; `PATCH /tasks/:taskId`; `DELETE /tasks/:taskId` | M7 |
+| Tasks | `POST /tasks`; `GET /tasks`; `GET /tasks/:taskId`; `PATCH /tasks/:taskId`; `DELETE /tasks/:taskId` | M7 (complete) |
 | Expenses | `POST /expenses`; `GET /expenses`; `GET /expenses/:expenseId`; `PATCH /expenses/:expenseId`; `DELETE /expenses/:expenseId` | M8 |
-| Guests | `POST /guests`; `GET /guests`; `GET /guests/:guestId`; `PATCH /guests/:guestId`; `DELETE /guests/:guestId`; `POST /guests/import`; `POST /guests/:guestId/rsvp-link`; `PATCH /guests/:guestId/invitation-sharing/common`; `PATCH /guests/:guestId/invited-events/:eventId/invitation-sharing` | M9 |
-| Invitations | `GET /invitations`; `POST /invitations`; `DELETE /invitations/:invitationId` | M10 |
+| Guests | `POST /guests`; `GET /guests`; `GET /guests/:guestId`; `PATCH /guests/:guestId`; `DELETE /guests/:guestId`; `POST /guests/import`; `POST /guests/:guestId/rsvp-link`; `PATCH /guests/:guestId/invitation-sharing/common`; `PATCH /guests/:guestId/invited-events/:eventId/invitation-sharing` | M9 (complete) |
+| Invitations | `GET /invitations`; `POST /invitations`; `DELETE /invitations/:invitationId` | M10 (complete) |
 | Family RSVP | `GET /public/rsvp/:token`; `PUT /public/rsvp/:token/events/:eventId` | M11 |
 | Dashboard | `GET /dashboard/summary` | M12 |
 | Announcements | `POST /announcements`; `GET /announcements`; `GET /announcements/:announcementId`; `PATCH /announcements/:announcementId`; `DELETE /announcements/:announcementId` | M13 |

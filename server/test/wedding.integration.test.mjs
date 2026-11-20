@@ -108,14 +108,21 @@ describe('M4 Wedding setup and Manager onboarding', () => {
     let probeConnection;
     try {
       const dotenv = require('dotenv');
-      const localConfig = dotenv.parse(readFileSync(path.join(serverDirectory, '.env')));
-      const uri = localConfig.MONGO_DB_URI;
-      const applicationDatabaseName = localConfig.MONGO_DB_NAME;
+      const uriOverride = process.env.M4_TEST_MONGO_URI;
+      const localConfig = uriOverride
+        ? {}
+        : dotenv.parse(readFileSync(path.join(serverDirectory, '.env')));
+      const uri = uriOverride ?? localConfig.MONGO_DB_URI;
+      const applicationDatabaseName = uriOverride ? 'm4-test-override' : localConfig.MONGO_DB_NAME;
+      const uriHost = uri ? new URL(uri).hostname : '';
 
       if (!uri || !/^mongodb(?:\+srv)?:\/\//.test(uri)) {
         throw new Error('The local MongoDB connection configuration is missing or invalid.');
       }
-      if (localConfig.NODE_ENV !== 'development') {
+      if (!['localhost', '127.0.0.1', '::1'].includes(uriHost)) {
+        throw new Error('M4 integration tests require a loopback MongoDB URI.');
+      }
+      if (!uriOverride && localConfig.NODE_ENV !== 'development') {
         throw new Error('M4 integration tests require a connection configured for development.');
       }
       if (!applicationDatabaseName || /prod(uction)?|live/i.test(applicationDatabaseName)) {
@@ -129,6 +136,7 @@ describe('M4 Wedding setup and Manager onboarding', () => {
         'SMTP_HOST', 'SMTP_PORT', 'SMTP_SECURE', 'SMTP_USER', 'SMTP_PASSWORD', 'SMTP_FROM',
       ]) delete process.env[name];
       process.env.NODE_ENV = 'test';
+      process.env.MONGO_DB_URI = uri;
       process.env.MONGO_DB_NAME = testDatabaseName;
       process.env.SESSION_SECRET = randomBytes(64).toString('hex');
       process.env.FRONTEND_ORIGIN = 'http://localhost:5173';
@@ -155,7 +163,14 @@ describe('M4 Wedding setup and Manager onboarding', () => {
       await probeConnection.close();
       probeConnection = undefined;
 
-      const config = require(path.join(serverDirectory, 'src/config/env.js'));
+      const originalDotenvConfig = dotenv.config;
+      dotenv.config = () => ({ parsed: {} });
+      let config;
+      try {
+        config = require(path.join(serverDirectory, 'src/config/env.js'));
+      } finally {
+        dotenv.config = originalDotenvConfig;
+      }
       testConfig = config;
       User = require(path.join(serverDirectory, 'src/modules/auth/user.model.js'));
       Wedding = require(path.join(serverDirectory, 'src/modules/wedding/wedding.model.js'));

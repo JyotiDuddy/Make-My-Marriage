@@ -2,13 +2,13 @@
 
 **Report purpose:** Central project progress record. Maintain this document after each major milestone, feature, module, significant bug fix, or technical change. Update this file in place; do not create milestone-specific status reports.
 
-**Last updated:** 2026-11-17
+**Last updated:** 2026-11-20
 
 ## 1. Project Overview
 
 Make My Marriage is a wedding planning and guest communication application. The approved product scope includes a private wedding dashboard for Admins and Managers, a public wedding website, and secure family-specific RSVP experiences. The approved architecture is a MERN modular monolith: one React application, one Node.js/Express application, MongoDB, and selected external services.
 
-The current repository has completed the initial project scaffold, a frontend-only public wedding website demo, and Backend Milestones 1–6. The User, Wedding and Event models, Admin authentication, MongoDB-backed sessions, CSRF protection, password-reset flow, Wedding setup and Manager onboarding, Wedding image/Our Story APIs, and Event APIs have passed their recorded tests. Cloudinary operations in automated tests use a fake adapter; live Cloudinary credentials are not configured or tested. Nodemailer is integrated through the existing email adapter, but SMTP credentials are not configured and real email delivery has not been tested.
+The current repository has completed the initial project scaffold, a frontend-only public wedding website demo, and Backend Milestones 1–14. M14 implements the Photo model, five organizer endpoints, Admin review and the public guest photo submission endpoint; all M14 verification passed. User, Wedding, Event, Task, Expense, Guest, Invitation, RSVP, Announcement and Photo models; Admin authentication; MongoDB-backed sessions; CSRF protection; password-reset flow; Wedding setup and Manager onboarding; Wedding image/Our Story, Event, Task, Expense, Guest, Invitation, Family RSVP, Dashboard Summary, Announcement and organizer Photo APIs have passed their recorded tests. Cloudinary operations in automated tests use a fake adapter; live Cloudinary credentials are not configured or tested. Nodemailer is integrated through the existing email adapter, but SMTP credentials are not configured and real email delivery has not been tested.
 
 ## 2. Technology Stack
 
@@ -16,22 +16,27 @@ The current repository has completed the initial project scaffold, a frontend-on
 
 - **Client:** React 19, React DOM 19, Vite 8, React Router 8, Tailwind CSS 4, ESM.
 - **Server:** Node.js 24.14.1, Express 5, Mongoose 9, Helmet, dotenv, `express-session`, `connect-mongo`, bcrypt, `csrf-sync`, `express-rate-limit`, CORS, Nodemailer, CommonJS.
-- **M6 server additions:** Event Mongoose model, wedding-scoped Event routes/services, and no new third-party dependencies.
+- **M6–M8 server additions:** Event, Task and Expense Mongoose models and wedding-scoped routes/services; no new third-party dependencies.
+- **M10 server addition:** Invitation model and Admin/Manager upload, list and removal APIs; reuses the existing Cloudinary, Multer and file-type integrations.
+- **M11 server addition:** RSVP model and two public family-token routes; reuses the M9 token hash, M3 rate-limiting infrastructure, and M6 Event deletion coordination.
+- **M12 server addition:** Wedding-scoped Dashboard Summary endpoint calculated from existing Event, Expense, Guest, RSVP and Task collections; no Dashboard model or collection.
+- **M13 server addition:** Wedding-scoped Announcement model and five Admin/Manager management endpoints, with publication state and timestamp handling; public read remains assigned to M15.
+- **M14 server addition:** Photo model, five organizer endpoints, Admin-only guest-photo review, public guest submission, an approved-only public projection helper for M15, and Event deletion dependency coordination. No new dependencies were added.
 - **Repository:** npm 11.18.0 workspaces (`client` and `server`) with a root `package-lock.json`.
 - **Development tooling:** ESLint, React Hooks and React Refresh ESLint plugins, concurrently.
 - **Client/server boundary:** Vite proxies `/api` to `http://localhost:4000`; client requests are intended to use relative `/api/v1` paths. Client environment examples contain no variables; server `.env.example` contains development settings and a local MongoDB URI without credentials.
 
 ### Planned, not yet installed or implemented
 
-Planned feature-specific dependencies not yet installed include Zod and csv-parse, where applicable. Later product modules remain unimplemented. Vitest and Supertest are installed as development dependencies. The presence of a dependency does not mean every later product feature is implemented.
+Planned feature-specific dependencies not yet installed include Zod. `csv-parse` was introduced for M9 CSV import. Later product modules remain unimplemented. Vitest and Supertest are installed as development dependencies. The presence of a dependency does not mean every later product feature is implemented.
 
 ## 3. Current Overall Status
 
 **Overall project: In progress.**
 
-- **Completed:** Initial scaffold; public wedding website UI using local demo data; code change for hash-based section navigation; Backend Milestones 1–6, including User/Wedding/Event models, Admin authentication/security, Wedding setup/publication and Manager onboarding/activation, Wedding image/Our Story APIs, and Event APIs.
-- **Current stage:** Backend Milestones 1–6 are complete and verified. Backend Milestone 7 — Shared Tasks — is next.
-- **Pending:** Later product models and APIs, private Admin/Manager dashboard UI, and frontend-backend integration.
+- **Completed:** Initial scaffold; public wedding website UI using local demo data; code change for hash-based section navigation; Backend Milestones 1–14, including Photo management, review and public guest photo submission.
+- **Current stage:** Backend Milestones 1–14 are complete. Milestone 15 — Public Website APIs, Integration and CI/CD — is next and NOT STARTED.
+- **Pending:** M15 public website APIs and integration; private Admin/Manager dashboard UI; frontend-backend integration.
 - **Blocked:** No current product work is marked blocked.
 
 ## 4. Completed Milestones
@@ -108,15 +113,15 @@ Planned feature-specific dependencies not yet installed include Zod and csv-pars
 
 ## 5. Current Development Stage
 
-The public wedding website presentation layer is in place as a demo. Backend Milestones 1–6 are complete. Backend Milestone 7 — Shared Tasks — is next. Later product APIs, the private dashboard and frontend-backend integration remain pending. The public website remains demo-only.
+The public wedding website presentation layer is in place as a demo. Backend Milestones 1–14 are complete. M15, the private dashboard UI and frontend-backend integration remain pending. The public website remains demo-only.
 
 ## 6. Pending Milestones and Features
 
 All pending work remains unimplemented. Backend work is tracked in [Backend Implementation Roadmap](Backend%20Implementation%20Roadmap.md).
 
-**Backend sequence:** Milestones 1–6 — Foundation, Core Persistence Models, Authentication/Sessions/Security, Wedding Setup/Manager Onboarding, Wedding Images/Our Story, and Events/YouTube Metadata — are complete. Milestone 7 — Shared Tasks — is **NEXT / NOT STARTED**. Milestones 8–15 remain in the existing dependency-aware order defined in the roadmap.
+**Backend sequence:** Milestones 1–14 — through Wedding Memories and Photo Review, including the public guest photo submission endpoint — are complete. Milestone 15 remains NOT STARTED and is next in the existing dependency-aware order defined in the roadmap.
 
-The private Admin/Manager dashboard UI and frontend-backend integration remain pending. M4 implements the six Wedding setup/invitation/publication endpoints and Auth-module Manager activation. M5 cover-image and Our Story endpoints and M6 Event endpoints are implemented; later product-module APIs remain pending.
+The private Admin/Manager dashboard UI and frontend-backend integration remain pending. M4 implements the six Wedding setup/invitation/publication endpoints and Auth-module Manager activation. M5 cover-image and Our Story endpoints, M6 Event endpoints, M7–M8 Task and Expense endpoints, all nine M9 Guest endpoints, and all three M10 Invitation endpoints are implemented; later product-module APIs remain pending.
 
 The public invitation response is documented across the existing API contracts: `GET /public/weddings/:slug` returns `commonInvitation`, and the published events response includes each event's `invitation`. Implementing and consuming these contracts is pending; no endpoint is being added by this report.
 
@@ -134,7 +139,7 @@ The public invitation response is documented across the existing API contracts: 
 
 ### Implementation status
 
-The scaffold, User/Wedding models, M3 authentication/security, M4 Wedding ownership/role authorization, M5 Wedding image/Our Story services, and M6 Event services are implemented. Later product modules and public APIs still need implementation and verification.
+The scaffold, User/Wedding/RSVP/Announcement/Photo models, M3 authentication/security, M4 Wedding ownership/role authorization, M5 Wedding image/Our Story, M6 Event, M7 Task, M8 Expense, M9 Guest, M10 Invitation, M11 Family RSVP, M12 Dashboard Summary, M13 Announcement, and all M14 organizer and guest Photo services are implemented. M15 public website APIs remain pending.
 
 ## 8. Dependencies and Integrations
 
@@ -145,9 +150,9 @@ Package versions and purposes are declared in the root, client, and server `pack
 ### Pending integrations
 
 - Live Cloudinary verification for wedding imagery, plus future Cloudinary uploads and cleanup for invitations and guest photos. M5 automated tests use a fake adapter; actual Cloudinary credentials are not configured.
+- M14 public guest photo submission is implemented per the approved API contract: multipart `image` plus optional `eventId`, 10 MB maximum, JPEG/PNG/WebP with content/MIME validation, 5 requests per 15 minutes per IP, and minimal HTTP 201 response (`data.status: PENDING`). Cloudinary compensation follows the approved existing adapter convention. Real Cloudinary operations have not been tested. Organizer photos have the same 10 MB limit.
 - SMTP credentials and live delivery checks for Manager invitations and password resets; Nodemailer is wired into the shared adapter, and automated tests use an injected fake.
-- Public API and RSVP endpoint implementation and client integration.
-- CSV guest import and server-side validation/security dependencies listed above.
+- Remaining public website API and frontend-backend integration.
 
 No production credentials or live service configuration are present in the client. `server/.env.example` contains a local MongoDB URI. A random local-only `SESSION_SECRET` was added to ignored `server/.env`; its value is not recorded.
 
@@ -173,11 +178,19 @@ No production credentials or live service configuration are present in the clien
 | M4 Wedding/Manager integration tests | Passed | 15 tests against a unique disposable MongoDB database; it was dropped afterward. Tests use an injected fake mailer and do not contact SMTP. |
 | M5 Wedding images/Our Story MongoDB integration | Passed | 15 tests using a generated isolated local database and injected fake Cloudinary adapter; test database was dropped. No remote MongoDB or Cloudinary was contacted. |
 | M6 Events MongoDB integration | Passed | 11 tests against a generated loopback-only disposable database; database dropped after testing. Verifies six endpoints, indexes, auth/CSRF, role and Wedding isolation, validation, transitions, pagination, video parsing, and soft-delete/dependency guard behavior. |
+| M7 Shared Tasks MongoDB integration | Passed | 8 tests against a generated disposable database on a temporary loopback-only replica set, dropped after testing. Covers Task schema/indexes, all five endpoints, filters/order/pagination, authorization/CSRF/isolation, Event association and deletion guard, and concurrent Task association/Event deletion. |
 | Image-validation unit tests | Passed | 6 tests covering signatures/content validation and Our Story fields; included in the 25-test backend run. |
-| Backend product API tests | Partial | M4–M6 product endpoints are implemented; M7–M15 APIs remain unimplemented. |
+| M8 Expenses MongoDB integration | Passed | 9 tests against a generated disposable database on a temporary loopback-only replica set; database dropped after testing. Covers exact schema/indexes, all five routes, paise validation, filters/order/pagination, ownership, auth/CSRF, Event reference validation, deletion guard, cancellation preservation and concurrent create/PATCH association versus Event deletion. |
+| M9 Guests MongoDB integration | Passed | 16 tests passed against a generated disposable database on the local loopback replica set. Covers all nine Guest endpoints, CSV constraints/partial imports/errors/warnings/privacy, RSVP token hash/90-day expiry/regeneration/revocation, and existing Guest access controls. |
+| M10 Invitations MongoDB integration | Passed | 19 tests passed against a generated disposable database on the existing local loopback replica set with fake Cloudinary. Covers all three endpoints, exact partial indexes, media validation, replacement/deletion cleanup, authorization/CSRF/isolation, Event deletion guard, and upload/deletion concurrency. |
+| M11 Family RSVP MongoDB integration | Passed | 8 tests passed against a generated disposable database on the local loopback replica set; it was dropped after the run. Covers RSVP schema/indexes; valid, malformed, unknown, expired, revoked, regenerated and deleted-family tokens; separate endpoint rate limits; privacy; unpublished-site access; invited, same-Wedding and active Event rules; response create/update/idempotency/concurrency; Event deletion protection and cancellation preservation. |
+| M12 Dashboard Summary MongoDB integration | Passed | 8 tests passed against a generated disposable local replica-set database, dropped after the run. Covers response fields; event and deadline boundaries in multiple Wedding timezones; integer paise totals; active family records; accepted/pending invited family-event pairs; task eligibility; authorization and Wedding isolation. |
+| M13 Announcements MongoDB integration | Passed | 6 tests passed against a generated disposable local replica-set database, dropped after the run. Covers schema/index, all five management endpoints, required fields/status and protected fields, status filter/pagination/order, Wedding isolation, publication timestamps and republishing, deletion, Admin/Manager access, anonymous denial and CSRF. No public endpoint was added. |
+| M14 Photo MongoDB integration | Passed | 16 tests passed against a generated disposable local replica-set database using fake Cloudinary. Covers schema and actual indexes, all six M14 endpoints, organizer and guest upload validation, Admin/Manager authorization, CSRF, Wedding isolation, per-IP rate limiting, minimal guest response/PENDING state, review rules, Event association/deletion coordination, Cloudinary failure compensation, and the approved-only projection helper. |
+| Backend product API tests | Passed through M14 | M2–M14 integration suites and backend non-integration suite passed. M15 APIs remain pending. |
 | M2 MongoDB index tests | Passed | Actual MongoDB index creation, options, and uniqueness enforcement were verified against an isolated test database and cleaned up afterward. |
 
-The root `test` script runs workspace tests when present. MongoDB integration suites are opt-in, separate workspace scripts so ordinary tests do not connect to an external database. The server has six foundation tests, 13 schema tests, seven M2 database-index tests, 13 M3 auth integration tests, 15 M4 Wedding/Manager integration tests, 15 M5 Wedding images/Our Story integration tests, and 11 M6 Event integration tests.
+The root `test` script runs workspace tests when present. MongoDB integration suites are opt-in, separate workspace scripts so ordinary tests do not connect to an external database. The server has six foundation tests, 13 schema tests, seven M2 database-index tests, 13 M3 auth integration tests, 15 M4 Wedding/Manager integration tests, 15 M5 Wedding images/Our Story integration tests, 11 M6 Event integration tests, 8 M7 Task integration tests, 9 M8 Expense integration tests, 16 M9 Guest integration tests, 19 M10 Invitation integration tests, 8 M11 RSVP integration tests, 8 M12 Dashboard Summary integration tests, 6 M13 Announcement integration tests, and 16 M14 Photo integration tests. M2–M14 suites use generated disposable databases and explicit loopback-only test URIs where required.
 
 ## 10. Known Issues and Limitations
 
@@ -189,9 +202,10 @@ The root `test` script runs workspace tests when present. MongoDB integration su
 - The approved documents do not define a minimum password length or complexity rule. Validation rejects empty passwords and values over bcrypt's 72-byte input limit; no additional password policy was introduced.
 - `GET /auth/csrf` has no explicit response field documented. The implementation returns the token as `data.csrfToken`, matching the documented frontend header flow; confirm this field before frontend integration if the API contract needs an exact response shape.
 - Session duration, password-reset token lifetime, rate-limit windows and thresholds, bcrypt cost, CORS origin, and trusted-proxy settings are configurable. Their current defaults are implementation choices, not product policy.
-- M7–M15 product APIs, dashboard, frontend-backend integration, future upload integrations, and deployment remain pending. Event-dependent Task, Expense, Guest, RSVP, Invitation and Photo models do not yet exist; their milestones must register deletion checks. M5 cleanup failures are logged for manual Cloudinary retry; there is no queue or automated retry worker.
+- M15 public website APIs, private dashboard UI, frontend-backend integration, future upload integrations, and deployment remain pending. PRD FR-02's recent-record-updates item is deferred to a later API contract and is not returned by the current Dashboard Summary endpoint. Photo Event references are now included in the M6 Event deletion guard; Event cancellation preserves linked Photos. M5/M10/M14 Cloudinary cleanup failures are logged for manual retry; there is no queue or automated retry worker. M7–M14 transaction/concurrency and aggregation integration suites require a MongoDB replica set; the generated test databases are dropped after each suite.
+- API Design §9 does not enumerate Expense response fields or the PATCH allowlist and does not specify list sort direction. M8 follows established API envelopes and module conventions, allows only editable Expense business fields, and sorts newest payment dates first with a stable `_id` tie-breaker. Confirm exact response/sort semantics in the API contract before frontend integration if consumers depend on them.
 - The previously reported four moderate `minimatch` development-dependency audit findings have not been re-audited during this milestone. Installation used `--no-audit`; no audit remediation was requested.
-- The guest photo API is documented as `POST /public/weddings/:slug/photos`, but its implementation and complete request/response and operational handling are pending.
+
 - **npm audit advisory:** Four moderate development-dependency findings involving `minimatch` in the ESLint dependency tree were reported. `npm audit --omit=dev` returned zero vulnerabilities. Remediation was deliberately deferred; ESLint was not downgraded and dependencies were not modified.
 
 ## 11. Change History
@@ -210,6 +224,16 @@ The root `test` script runs workspace tests when present. MongoDB integration su
 | 2026-11-16 | Corrected Wedding creation to persist `managerId: null` per API Design §4.2; the integration test asserts the stored value. M4 (15), backend unit/HTTP (19), M2 index (7), M3 auth (13), lint, build and diff checks passed. |
 | 2026-11-17 | Completed Backend Milestone 5 after 15 local MongoDB integration tests, 25 backend tests, lint, build and diff checks passed. Recorded the approved cover deletion contract and M5 verification; Cloudinary live credentials remain unconfigured. |
 | 2026-11-17 | Completed Backend Milestone 6 with all six Event endpoints, 11 isolated local MongoDB tests, 25 backend regression tests, M5 integration regression, lint, build and diff checks. Recorded the approved required-status, reversible-transition and `HH:mm` clarifications. |
+| 2026-11-17 | Completed Backend Milestone 7 with five Shared Task endpoints, 8 isolated replica-set MongoDB tests, M1–M6 regressions, lint, build and diff checks. Recorded the approved Task contracts and Event deletion concurrency coordination; no commit or push was made. |
+| 2026-11-17 | Completed Backend Milestone 8 with five Expense endpoints, 9 isolated replica-set MongoDB integration tests, M2–M7 regressions, lint, build and diff checks. Added Expense Event-dependency protection and recorded API §9 response/PATCH/sort details that remain underspecified; no commit or push was made. |
+| 2026-11-17 | Began M9 and verified seven Guest CRUD/sharing endpoints with 12 isolated MongoDB integration tests and M2–M8 regressions. Recorded CSV import and RSVP-link generation as pending decisions; M9 remains IN PROGRESS. |
+| 2026-11-18 | Completed M9: added approved CSV import and 90-day hashed RSVP-link generation; all 16 M9 tests, M2–M8 integration regressions, 25 backend tests, lint, build and diff checks passed using disposable loopback MongoDB. |
+| 2026-11-18 | Completed M10 with all three Invitation endpoints, the approved 10 MB image limit, M6 Event deletion coordination, and 19 isolated MongoDB tests; M2–M9 regressions, 25 backend tests, lint, build and diff checks passed. Cloudinary remained mocked; no commit or push was made. |
+| 2026-11-18 | Completed M11 with both public Family RSVP endpoints, the §5.7 RSVP model/indexes, approved 20-per-15-minute per-IP limits, privacy and Event-deletion protections, and 8 isolated MongoDB tests. M2–M10 regressions, 25 backend tests, lint, build and diff checks passed; no commit or push was made. |
+| 2026-11-18 | Completed M12 with the documented Dashboard Summary endpoint, timezone-aware event counts, family-event RSVP metrics, integer-paise expense totals and task-deadline count. M12 tests passed 8/8; M2–M11 regressions and full verification passed. Recent record updates were deferred to a later API contract; no commit or push was made. |
+| 2026-11-18 | Completed M13 Announcements with five Wedding-scoped management endpoints and 6/6 local MongoDB integration tests; M2–M12 regression suites, 25 backend tests, lint, production build and diff check passed. Recorded approved publication timestamp, list-order and required-string clarifications; M14 is next. No commit or push was made. |
+| 2026-11-19 | Began M14 and verified organizer Photo functionality, 11 integration tests, M2–M13 regressions, backend tests, lint, build and diff check. |
+| 2026-11-20 | Completed M14: implemented all six Photo endpoints, including approved public guest submission; 16 M14 integration tests and all M2–M13 regressions passed, along with 25 backend tests, lint, production build and diff check. Recorded the approved guest upload contract. Cloudinary was tested only through a fake adapter; no remote database, real Cloudinary operation, commit or push was used. M15 is next. |
 
 ## 12. Backend Progress and Milestone Tracking
 
@@ -307,8 +331,150 @@ The [Backend Implementation Roadmap](Backend%20Implementation%20Roadmap.md) is t
 - **Important files modified:** `server/src/routes/v1.js`, `server/src/shared/http/responses.js`, `server/package.json`, `docs/Make My Marriage api.md`, `docs/Backend Implementation Roadmap.md`, and this report.
 - **Dependencies introduced:** None.
 - **Tests and verification:** M6 integration suite passed (11/11) using `M6_TEST_MONGO_URI=mongodb://127.0.0.1:27017` and a generated disposable database, dropped after tests. Tests verify all six routes, required fields/status, time/date values, menus/Maps/YouTube, server-generated ownership, list filters/pagination, updates/video removal, reversible status transitions, Admin/Manager/anonymous and CSRF behavior, cross-Wedding isolation, invalid IDs, soft deletion, injected dependency-blocked deletion, and actual presence of the three documented Event indexes. Backend regression suite passed (25/25); M5 image integration regression passed (15/15). Server lint, root lint, frontend production build, and `git diff --check` passed.
-- **Lifecycle limitation:** No Task, Expense, Guest, RSVP, Invitation or Photo model existed before M6, so there were no real dependent product records to query. The tested dependency-check interface is ready for M7–M14 to extend; M15 must verify all linked record types together. The M2–M4 opt-in integration scripts were not rerun because their harnesses read the configured `.env` URI and this task prohibits remote database access; their previously recorded results remain in this report.
+- **Lifecycle limitation:** No Task, Expense, Guest, RSVP, Invitation or Photo model existed before M6, so there were no real dependent product records to query. The dependency-check interface was extended by M7 for Tasks; M8–M14 must register their Event dependencies, and M15 must verify all linked record types together. At M6 verification time, M2–M4 opt-in suites were not rerun because their harnesses read `.env`; they were rerun in M7 after adding explicit loopback-only URI overrides.
 - **Git state:** M6 and existing M5 changes remain uncommitted; no commit or push was made.
+- **Commit reference:** None — not committed.
+
+### Backend Milestone 7 — Shared Tasks
+
+- **Status:** COMPLETED.
+- **Start date:** 2026-11-17.
+- **Completion date:** 2026-11-17, after isolated local MongoDB integration, M1–M6 regressions, lint, frontend build, and diff checks passed.
+- **Objective:** Implement the shared Admin/Manager Task list and optional same-Wedding Event relationship.
+- **Implementation summary:** Added the documented Task model and exactly two indexes. Implemented create, list, read, partial update, and hard delete. Validated required title/deadline/status/priority; deadlines require complete ISO 8601 date-times with an explicit timezone, while past deadlines remain allowed. List filters are status, priority, eventId, page and limit; results sort by deadline ascending and `_id` ascending. PATCH allows only title, description, eventId, deadline, priority and status; empty description clears text and `eventId: null` removes the relationship. No task assignment, `deletedAt`, defaults, extra schema fields, indexes, or dependencies were added.
+- **Endpoints:** `POST /api/v1/tasks`; `GET /api/v1/tasks`; `GET /api/v1/tasks/:taskId`; `PATCH /api/v1/tasks/:taskId`; `DELETE /api/v1/tasks/:taskId`.
+- **Authorization and integrity:** Admin and Manager share their Wedding's Task data. All operations resolve Wedding from authenticated identity; `weddingId`, `createdBy`, and `updatedBy` are server-controlled. Mutations require existing CSRF protection. Event references must be valid, active, and in the same Wedding. Cancelled Events remain valid associations; soft-deleted Events are rejected. Hard-deleted Tasks no longer block Event deletion.
+- **Event deletion guard and concurrency:** The default M6 Event service now checks for Tasks by both `weddingId` and `eventId`; linked Tasks cause the existing conflict response, and cancellation preserves the Task. When a Task create/update adds an Event reference, a MongoDB transaction touches the existing Event `updatedAt` monotonically and writes the Task, coordinating with M6's Event `updatedAt` compare-and-set deletion. The common-document write is required because a transaction alone would not prevent the race. No extra field/index or lock service was introduced. Event `updatedAt` therefore advances when a Task association is added or changed. This transactional test setup requires a replica set.
+- **Important files created:** `server/src/modules/tasks/task.model.js`, `task.validation.js`, `task.service.js`, `task.controller.js`, `task.routes.js`, `server/test/tasks.integration.test.mjs`.
+- **Important files modified:** `server/src/routes/v1.js`, `server/package.json`, M2–M4 integration-test harnesses to allow safe explicit loopback URI overrides, `docs/Make My Marriage api.md`, `docs/Backend Implementation Roadmap.md`, and this report.
+- **Dependencies introduced:** None.
+- **Testing and verification:** M7 integration suite **8/8** against a generated disposable database on temporary local replica set `127.0.0.1:27018`; database dropped afterward. M2 indexes **7/7**; M3 authentication **13/13**; M4 Wedding/Manager **15/15**; M5 images/Our Story **15/15**; M6 Events **11/11**; backend non-integration regression **25/25**. Server lint, root lint, frontend production build, and `git diff --check` passed. Older M2–M4 suites were run with explicit test-only loopback URI overrides that bypass reading `.env`; no remote MongoDB, `.env` credentials, SMTP, or Cloudinary was used.
+- **Limitations:** The normal MongoDB instance on port 27017 is standalone and cannot run transaction tests. M7 integration tests require a local replica set; a separate temporary loopback-only replica set was started for verification and has been stopped. No real external integrations were exercised.
+- **Git state:** M7 changes are uncommitted; no commit or push was made.
+- **Commit reference:** None — not committed.
+
+### Backend Milestone 8 — Actual Expenses
+
+- **Status:** COMPLETED.
+- **Start date:** 2026-11-17.
+- **Completion date:** 2026-11-17, after isolated local MongoDB integration, M2–M7 regressions, lint, frontend build, and diff checks passed.
+- **Objective:** Implement the documented actual-expense tracker, scoped to a Wedding and storing money as integer paise.
+- **Implementation summary:** Added the Expense model with the exact §5.5 schema and three documented indexes. Implemented create/list/read/partial update/hard delete, supported category filters, optional Event filter, inclusive date-range filters, pagination, and stable newest-payment-date ordering. Amount validation requires a safe positive integer; the API receives/returns integer paise without rupee conversion. PATCH accepts editable business fields; ownership, creator/updater, IDs and timestamps are not client-editable. No budget, limit, forecast or budget-versus-actual behavior was added.
+- **Endpoints:** `POST /api/v1/expenses`; `GET /api/v1/expenses`; `GET /api/v1/expenses/:expenseId`; `PATCH /api/v1/expenses/:expenseId`; `DELETE /api/v1/expenses/:expenseId`.
+- **Important files created:** `server/src/modules/expenses/expense.model.js`, `expense.validation.js`, `expense.service.js`, `expense.controller.js`, `expense.routes.js`, and `server/test/expenses.integration.test.mjs`.
+- **Important files modified:** `server/src/routes/v1.js`, `server/package.json`, `docs/Backend Implementation Roadmap.md`, and this report. Existing M2–M7 code and documentation history were preserved.
+- **Dependencies introduced:** None.
+- **Authorization and data integrity:** Existing session authentication, Admin/Manager role authorization and CSRF middleware are reused. Each query is scoped through the authenticated user's Wedding; `weddingId`, `createdBy`, and `updatedBy` are server-derived. Event references must identify a non-deleted Event in the same Wedding; cancelled Events remain associated and retain financial history. M6 Event deletion now also checks for linked Expenses. Adding an Event association during Expense creation or PATCH uses a MongoDB transaction and monotonically touches the existing Event `updatedAt`, the same M7 shared-document coordination used against M6's compare-and-set Event deletion. Tests confirm deletion and association do not both succeed in a state that leaves a successful Expense linked to a deleted Event.
+- **Tests and verification:** M8 integration **9/9**; M7 Tasks **8/8**; M6 Events **11/11**; M5 images/Our Story **15/15**; M4 Wedding/Manager **15/15**; M3 auth **13/13**; M2 indexes **7/7**; backend non-integration tests **25/25**. Integration tests used separate generated disposable databases on a temporary replica set bound only to `127.0.0.1:27018`; each database was dropped after testing. Backend lint, root lint, frontend production build, and `git diff --check` passed. No remote MongoDB, real `.env` values, Cloudinary or SMTP was used.
+- **Outstanding API-contract detail:** API Design §9 does not list endpoint response object fields or enumerate PATCH's permitted fields, and it gives no list sort direction. M8 follows standard envelopes and neighboring module conventions: business fields only for PATCH, and `paymentDate` descending with `_id` descending as stable tie-breaker. The API Design was not edited because no clarification was approved in this task; record this gap before frontend consumers rely on exact sort/response details.
+- **Git state:** M8 changes remain uncommitted; no commit or push was made.
+- **Commit reference:** None — not committed.
+
+### Backend Milestone 9 — Family Guests, CSV and Sharing
+
+- **Status:** COMPLETED.
+- **Start date:** 2026-11-17.
+- **Completion date:** 2026-11-18.
+- **Objective:** Implement family-based Guest management, invitation-sharing state, CSV import and family RSVP-link generation.
+- **Implemented scope:** Exact Guest schema/indexes; create/list/read/update/delete; search, Event and common invitation-status filters; pagination; formatting-only mobile normalization and duplicate-mobile warnings; same-Wedding invited-Event validation; invitation-sharing state; history-aware hard/soft deletion and RSVP revocation; CSV import with 2 MiB and 500-row limits, partial valid-row import, row-level non-sensitive errors and duplicate warnings; RSVP URL generation using 32 random bytes with SHA-256 hash storage and a 90-day expiry. No public RSVP APIs or messaging delivery were added.
+- **Implemented endpoints:** All nine documented Guest operations: `POST /api/v1/guests`; `GET /api/v1/guests`; `GET /api/v1/guests/:guestId`; `PATCH /api/v1/guests/:guestId`; `DELETE /api/v1/guests/:guestId`; `POST /api/v1/guests/import`; `POST /api/v1/guests/:guestId/rsvp-link`; `PATCH /api/v1/guests/:guestId/invitation-sharing/common`; `PATCH /api/v1/guests/:guestId/invited-events/:eventId/invitation-sharing`.
+- **Important files created:** `server/src/modules/guests/csv-import.service.js`, `csv-upload.middleware.js`, and `server/test/guests.integration.test.mjs` (extended for M9 operational endpoints and cases).
+- **Important files modified:** `server/src/modules/guests/guest.service.js`, `guest.controller.js`, `guest.routes.js`, `server/package.json`, root `package-lock.json`, `docs/Make My Marriage api.md`, `docs/Backend Implementation Roadmap.md`, and this report.
+- **Dependencies introduced:** `csv-parse` for CSV parsing.
+- **Authorization and data integrity:** Existing session authentication, Admin/Manager authorization, CSRF, response envelopes and centralized error handling are reused. Guest reads and writes are Wedding-scoped; ownership and audit fields are server-derived. Ordinary Guest responses omit RSVP token hashes and access metadata. New Guest/Event associations are written in MongoDB transactions and coordinate through the Event's existing `updatedAt` document with M6 deletion, using the M7/M8 strategy. Event deletion is blocked while any Guest retains an invited-event reference.
+- **Git state:** M9 changes remain uncommitted; no commit or push was made. Pre-existing uncommitted M2–M8 changes remain in the working tree.
+- **Commit reference:** None — not committed.
+- **Tests and verification:** M9 integration **16/16** passed against a generated disposable database on a temporary loopback-only replica set; database dropped after testing. Covers all nine endpoints, CSV validation/limits/partial imports/duplicate warnings/privacy, RSVP token hashing/90-day expiry/regeneration/revocation, and existing schema, authorization, CSRF, Wedding isolation and Event-dependency behavior. Regression suites passed: M8 **9/9**, M7 **8/8**, M6 **11/11**, M5 **15/15**, M4 **15/15**, M3 **13/13**, M2 **7/7**, backend non-integration **25/25**. Backend lint, root lint, frontend production build and `git diff --check` passed. A sandbox-only `EPERM` on loopback was resolved by running the tests with permission for local-only access to the disposable test replica set; no remote MongoDB or real Cloudinary operations were used.
+- **Remaining limitations:** At M9 completion, API Design §10.3 still left search fields, `invitationStatus` interpretation, response field details and duplicate-warning placement unclear; current behavior follows the already-recorded implementation conventions. M11 public RSVP endpoints were pending at that milestone and were completed in the subsequent M11 record. Cloudinary and SMTP remain untested with real credentials.
+- **Git state:** Changes remain uncommitted; no commit or push was made. Existing M2–M8 worktree changes were preserved.
+- **Commit reference:** None — not committed.
+- **Git state:** M9 changes remain uncommitted; no commit or push was made. Pre-existing uncommitted M2–M8 changes remain in the working tree.
+- **Commit reference:** None — not committed.
+
+### Backend Milestone 10 — Invitation Cards
+
+- **Status:** COMPLETED.
+- **Start date:** 2026-11-18.
+- **Completion date:** 2026-11-18.
+- **Objective:** Upload, list, replace and remove one COMMON card per Wedding or one EVENT card per Event.
+- **Implemented scope:** Added the exact Invitation schema fields and two Database Design §5.8 partial unique indexes; Admin/Manager upload, list and delete; COMMON cards omit/null the Event association, while EVENT cards require a valid active same-Wedding Event. JPEG, PNG and WebP are checked by signature and MIME; the user approved a 10 MB per-image maximum, now recorded in API Design §17. Image bytes are sent to Cloudinary; only documented metadata is stored in MongoDB. Replacement updates the same Invitation record and deletes the previous asset only after persistence. Failed persistence triggers best-effort cleanup of the new asset. Deletion removes the database reference first; cleanup failures are logged for manual retry. No invitation designer, family-personalized cards, WhatsApp sending, or new collection/index was added.
+- **Endpoints:** `GET /api/v1/invitations`; `POST /api/v1/invitations`; `DELETE /api/v1/invitations/:invitationId`.
+- **Important files created:** `server/src/modules/invitations/invitation.model.js`, `invitation.routes.js`, `invitation.controller.js`, `invitation.service.js`, `invitation.validation.js`, and `server/test/invitations.integration.test.mjs`.
+- **Important files modified:** `server/src/routes/v1.js`, `server/package.json`, `docs/Make My Marriage api.md`, `docs/Backend Implementation Roadmap.md`, and this report. Shared M5 upload, file-validation and Cloudinary adapter code was reused; no dependency or lockfile change was required.
+- **Security and data integrity:** Existing session authentication, Admin/Manager role checks, CSRF and Wedding scoping are used. Client ownership is never trusted. Cloudinary public IDs are omitted from response objects. EVENT association writes reuse the M7–M9 transactional Event `updatedAt` coordination with M6 deletion; linked invitations prevent Event deletion, while cancellation preserves the Invitation.
+- **Tests and verification:** M10 integration **19/19**; M9 **16/16**; M8 **9/9**; M7 **8/8**; M6 **11/11**; M5 **15/15**; M4 **15/15**; M3 **13/13**; M2 **7/7**. Backend non-integration tests **25/25**; backend lint, root lint, frontend production build and `git diff --check` passed. Generated disposable local MongoDB databases were used; Cloudinary was mocked. No remote MongoDB or real Cloudinary credentials/assets were used.
+- **Remaining limitations:** Live Cloudinary upload/deletion is unverified; configure server-side credentials before testing real provider operations. Failed Cloudinary cleanup requires manual retry from structured logs; no retry worker exists. Response field details for Invitation management are not explicitly enumerated in API Design §11; implementation uses the standard envelope and omits Cloudinary management IDs.
+- **Git state:** Work remains uncommitted; no commit or push was made. Existing M2–M9 worktree changes were preserved.
+- **Commit reference:** None — not committed.
+
+### Backend Milestone 11 — Family RSVP
+
+- **Status:** COMPLETED.
+- **Start date:** 2026-11-18.
+- **Completion date:** 2026-11-18.
+- **Objective:** Let families view only their invited Events and submit or update one YES/NO response per invited Event through the secure M9 token.
+- **Implemented scope:** Added the documented RSVP fields and indexes; implemented `GET /api/v1/public/rsvp/:token` and `PUT /api/v1/public/rsvp/:token/events/:eventId`; reads only active invited Events and that family's existing responses, excluding cancelled/deleted Events; creates and updates one response with a stable `respondedAt` for repeated identical responses. The endpoints work while the website is unpublished and do not require an organizer session or CSRF token.
+- **Important files created:** `server/src/modules/rsvp/rsvp.model.js`, `rsvp.routes.js`, `rsvp.controller.js`, `rsvp.service.js`, `rsvp.validation.js`, and `server/test/rsvp.integration.test.mjs`.
+- **Important files modified:** `server/src/config/env.js`, `server/src/middleware/rate-limiter.js`, `server/src/routes/v1.js`, `server/src/modules/guests/guest.service.js`, `server/package.json`, `docs/Make My Marriage api.md`, `docs/Backend Implementation Roadmap.md`, and this report.
+- **Dependencies introduced:** None.
+- **Security and data integrity:** M9's SHA-256 hash and 32-byte base64url token design is reused. Invalid, malformed, expired, revoked, regenerated, and deleted-family tokens return a consistent `404 TOKEN_INVALID`; raw tokens and hashes are not returned or logged. Each endpoint has a separate per-IP limit approved by the user at 20 requests per 15 minutes. Public responses set `Referrer-Policy: no-referrer` and use explicit field projections. Event references are same-Wedding, active, and invitation-scoped. RSVP writes coordinate through the existing Event `updatedAt` transaction strategy and the unique compound index. RSVP dependencies now prevent Event deletion, and cancellation preserves RSVP history. M9 Guest deletion was moved into a transaction so a concurrent RSVP write cannot race with Guest hard deletion.
+- **Tests and verification:** M11 MongoDB integration **8/8** passed on the local loopback replica set with a generated disposable database, dropped after the run. Coverage includes indexes, token validity/expiry/revocation/regeneration/deletion, rate limits on both routes, privacy, unpublished-site access, event membership and same-Wedding/status checks, anonymous bearer access, YES/NO create/update/idempotency, concurrent submission, Event deletion guard, and cancellation preservation. Regression results: M10 **19/19**, M9 **16/16**, M8 **9/9**, M7 **8/8**, M6 **11/11**, M5 **15/15**, M4 **15/15**, M3 **13/13**, M2 **7/7**; backend non-integration **25/25**. Backend lint, root lint, frontend production build, and `git diff --check` passed. Local database connections required permission for loopback access; no remote database or external service was used.
+- **Outstanding issues:** The rate limiter uses the existing in-memory store, so limits are per server process. The separate rate-limit window and per-endpoint maximums are configurable server-side. The public website UI remains demo-only and is not integrated with these endpoints.
+- **Git state:** Changes remain uncommitted; no commit or push was made. Existing uncommitted M2–M10 changes were preserved.
+- **Commit reference:** None — not committed.
+
+### Backend Milestone 12 — Dashboard Summary
+
+- **Status:** COMPLETED.
+- **Start date:** 2026-11-18.
+- **Completion date:** 2026-11-18.
+- **Objective:** Calculate and return Wedding-scoped dashboard totals from existing collections without a Dashboard model or collection.
+- **Endpoint:** `GET /api/v1/dashboard/summary`.
+- **Implemented response fields:** `totalEvents`, `upcomingEvents`, `totalExpensesPaise`, `totalFamilies`, `acceptedRsvps`, `pendingRsvps`, and `upcomingTasks` within the established success envelope. PRD FR-02 recent record updates are deferred to a later API contract and are not returned.
+- **Calculation behavior:** Total Events includes all non-deleted statuses; upcoming Events must have status `UPCOMING` and event date/time at or after the current instant in the Wedding timezone. Expense totals sum actual `amountPaise` values. Family totals count active Guest records. Accepted and pending RSVP counts use currently invited, active family–Event pairs; YES is accepted, no response is pending, NO is neither, and deleted Guests or deleted/CANCELLED Events are excluded. Duplicate invited-event references count once. Upcoming task count includes `TODO` and `IN_PROGRESS` deadlines at or after the current instant; Tasks linked to deleted, CANCELLED, or cross-Wedding Events are excluded. No task list, limit or ordering is returned.
+- **Important files created:** `server/src/modules/dashboard/dashboard.routes.js`, `dashboard.controller.js`, `dashboard.service.js`, and `server/test/dashboard.integration.test.mjs`.
+- **Important files modified:** `server/src/routes/v1.js`, `server/package.json`, `docs/Make My Marriage api.md` (approved calculation clarifications), `docs/Backend Implementation Roadmap.md`, and this report.
+- **Dependencies introduced:** None. No Dashboard model/collection or cache was added.
+- **Security and data integrity:** Existing session authentication and Admin/Manager role middleware are reused. Wedding ownership is resolved from the authenticated user; all data operations are Wedding-scoped, and query-string Wedding IDs do not alter context. Only aggregate values are returned; family contacts and token data are not projected.
+- **Tests and verification:** M12 integration **8/8** passed against a generated disposable database on the local loopback replica set, dropped after testing. Coverage includes empty collections, exact response keys, all aggregate definitions, timezone and boundary checks in Asia/Kolkata and America/Los_Angeles, integer paise, family/Event/RSVP eligibility, duplicate invitation references, Task deadlines/status/Event eligibility, Admin/Manager access, invalid-role and anonymous denial, Wedding isolation, and private-data exclusion. Regression integrations passed: M11 **8/8**, M10 **19/19**, M9 **16/16**, M8 **9/9**, M7 **8/8**, M6 **11/11**, M5 **15/15**, M4 **15/15**, M3 **13/13**, M2 **7/7**. Backend non-integration **25/25**, backend lint, root lint, frontend production build, and `git diff --check` passed. M9/M10 suites initially failed when several database suites ran concurrently; local replica-set health was confirmed and both suites passed when rerun sequentially. No remote MongoDB or external service was used.
+- **Outstanding issues:** Recent record updates are deferred to a later API contract. The existing rate-limit/session infrastructure remains process-local where applicable; M12 adds no caching or background processing.
+- **Git state:** Changes remain uncommitted; no commit or push was made. Existing M1–M11 worktree changes were preserved.
+- **Commit reference:** None — not committed.
+
+### Backend Milestone 13 — Announcements
+
+- **Status:** COMPLETED.
+- **Start date:** 2026-11-18.
+- **Completion date:** 2026-11-18.
+- **Objective:** Provide Wedding-scoped announcement management with controlled draft and publication state.
+- **Endpoints:** `POST /api/v1/announcements`, `GET /api/v1/announcements`, `GET /api/v1/announcements/:announcementId`, `PATCH /api/v1/announcements/:announcementId`, and `DELETE /api/v1/announcements/:announcementId`.
+- **Implemented scope:** Added the documented Announcement schema and compound index; implemented CRUD, status filtering, pagination, server-derived `weddingId`/`createdBy`/`updatedBy`, Admin/Manager access, and DRAFT/PUBLISHED timestamp handling. The public announcements endpoint remains assigned to M15 and was not implemented here.
+- **Important files created:** `server/src/modules/announcements/announcement.model.js`, `announcement.routes.js`, `announcement.controller.js`, `announcement.service.js`, `announcement.validation.js`, and `server/test/announcements.integration.test.mjs`.
+- **Important files modified:** `server/src/routes/v1.js`, `server/package.json`, `docs/Make My Marriage api.md`, `docs/Backend Implementation Roadmap.md`, and this report.
+- **Dependencies introduced:** None.
+- **Security and data integrity:** All queries are Wedding-scoped using authenticated ownership; only Admin/Manager roles may use these routes; write routes require CSRF; client-supplied ownership and audit fields are rejected; list results omit Wedding IDs; no DRAFT content is exposed publicly by M13.
+- **Approved behavior recorded:** Publishing sets `publishedAt`; unpublishing removes it; edits while remaining PUBLISHED preserve the timestamp; republishing sets a new timestamp. Management lists sort by `updatedAt` descending then `_id` descending. Required title/description strings have no undocumented maximum lengths.
+- **Tests and verification:** M13 local MongoDB integration **6/6** passed on the loopback replica set with a generated disposable database, dropped after the run. Regression integrations passed sequentially: M12 **8/8**, M11 **8/8**, M10 **19/19**, M9 **16/16**, M8 **9/9**, M7 **8/8**, M6 **11/11**, M5 **15/15**, M4 **15/15**, M3 **13/13**, M2 **7/7**. Backend non-integration **25/25**, backend lint, root lint, frontend production build, and `git diff --check` passed. No remote MongoDB or external service was used.
+- **Outstanding issues:** No M13-specific blockers. Public announcement projection is still pending M15.
+- **Git state:** Changes remain uncommitted; no commit or push was made. Earlier uncommitted work was preserved.
+- **Commit reference:** None — not committed.
+
+### Backend Milestone 14 — Wedding Memories and Photo Review
+
+- **Status:** COMPLETED.
+- **Start date:** 2026-11-19.
+- **Completion date:** 2026-11-20.
+- **Objective:** Implement Photo storage, organizer management, Admin review, Cloudinary coordination and guest submission without exposing unapproved photos.
+- **Implemented endpoints:** `GET /api/v1/photos`, `GET /api/v1/photos/:photoId`, `POST /api/v1/photos`, `PATCH /api/v1/photos/:photoId/review`, `DELETE /api/v1/photos/:photoId`, and `POST /api/v1/public/weddings/:slug/photos`. The public approved gallery GET remains assigned to M15.
+- **Implemented scope:** Added Photo matching Database Design §5.9, including its documented fields, enums, timestamps and two indexes. Admin/Manager organizer actions are Wedding-scoped. Organizer uploads are validated, max 10 MB and forced to APPROVED. Admin may make a one-time APPROVED/REJECTED decision only on a PENDING GUEST photo; Manager review is denied. Guest upload accepts multipart `image` and optional `eventId`, requires a published Wedding, enforces the approved 10 MB and JPEG/PNG/WebP content/MIME rules, and is limited to 5 requests per 15 minutes per IP. It returns HTTP 201 with only `data: { status: "PENDING" }` in the standard envelope. Event association is validated and coordinated with the existing Event deletion guard; cancellation preserves Photos.
+- **Important files created:** `server/src/modules/photos/photo.model.js`, `photo.routes.js`, `photo.controller.js`, `photo.service.js`, `photo.validation.js`, and `server/test/photos.integration.test.mjs`.
+- **Important files modified for M14:** `server/src/config/env.js`, `server/.env.example`, `server/src/routes/v1.js`, `server/package.json`, API Design §13, Backend Implementation Roadmap, and this report.
+- **Dependencies introduced:** None. Existing Multer, `file-type`, Cloudinary adapter, M3 auth/CSRF/rate limiting, and MongoDB transaction support are reused.
+- **Security and data integrity:** Wedding/uploader/review fields are server-derived; public guest submissions are forced PENDING and cannot access organizer-only photo records. Organizer and guest Event references must be active and same-Wedding. Responses omit Cloudinary storage metadata. Event deletion is blocked when linked Photos exist; cancellation preserves history. The public projection returns APPROVED photos only for M15.
+- **Cloudinary handling:** Upload failure returns 502 and persists no Photo. If persistence fails after upload, cleanup is attempted; failure is logged for manual retry. Photo deletion removes the record and deletes an asset only if unreferenced. Automated tests use a fake adapter; real Cloudinary credentials and operations were not used.
+- **Tests and verification:** M14 integration **16/16** passed on a generated disposable database using loopback-only local MongoDB replica-set infrastructure. M2–M13 regression suites passed sequentially: M13 **6/6**, M12 **8/8**, M11 **8/8**, M10 **19/19**, M9 **16/16**, M8 **9/9**, M7 **8/8**, M6 **11/11**, M5 **15/15**, M4 **15/15**, M3 **13/13**, M2 **7/7** (129 total). Backend non-integration tests **25/25** passed. Backend lint, root lint, frontend production build and `git diff --check` passed. No remote MongoDB or real Cloudinary calls were made.
+- **Outstanding issues:** No M14 implementation or verification blockers. M15 public website APIs remain pending.
+- **Git state:** Changes remain uncommitted; no commit or push was made. Existing M1–M13 worktree changes were preserved.
 - **Commit reference:** None — not committed.
 
 ### Future milestone record fields

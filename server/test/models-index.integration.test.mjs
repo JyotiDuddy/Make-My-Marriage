@@ -75,13 +75,19 @@ async function expectMongoDuplicate(collection, document) {
 describe('M2 MongoDB index enforcement', () => {
   beforeAll(async () => {
     try {
-      const envPath = path.join(serverDirectory, '.env');
-      const localConfig = dotenv.parse(readFileSync(envPath));
-      const uri = localConfig.MONGO_DB_URI;
-      const applicationDatabaseName = localConfig.MONGO_DB_NAME;
+      const uriOverride = process.env.M2_TEST_MONGO_URI;
+      const localConfig = uriOverride
+        ? {}
+        : dotenv.parse(readFileSync(path.join(serverDirectory, '.env')));
+      const uri = uriOverride ?? localConfig.MONGO_DB_URI;
+      const applicationDatabaseName = uriOverride ? 'm2-test-override' : localConfig.MONGO_DB_NAME;
+      const uriHost = uri ? new URL(uri).hostname : '';
 
       if (!uri || !/^mongodb(?:\+srv)?:\/\//.test(uri)) {
         throw new Error('The local MongoDB connection configuration is missing or invalid.');
+      }
+      if (!['localhost', '127.0.0.1', '::1'].includes(uriHost)) {
+        throw new Error('M2 integration tests require a loopback MongoDB URI.');
       }
 
       if (!applicationDatabaseName || testDatabaseName === applicationDatabaseName) {

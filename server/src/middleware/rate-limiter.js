@@ -2,9 +2,9 @@ const { rateLimit } = require('express-rate-limit');
 const config = require('../config/env');
 const { sendError } = require('../shared/http/responses');
 
-function createRateLimiter(limit, message = 'Too many requests. Try again later.') {
+function createRateLimiter(limit, message = 'Too many requests. Try again later.', windowMs = config.authRateLimitWindowMs) {
   return rateLimit({
-    windowMs: config.authRateLimitWindowMs,
+    windowMs,
     limit,
     standardHeaders: 'draft-8',
     legacyHeaders: false,

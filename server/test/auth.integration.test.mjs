@@ -79,15 +79,21 @@ describe('M3 authentication, sessions, CSRF, reset, and rate limits', () => {
 
     try {
       const dotenv = require('dotenv');
-      const localConfig = dotenv.parse(readFileSync(path.join(serverDirectory, '.env')));
-      const uri = localConfig.MONGO_DB_URI;
-      const applicationDatabaseName = localConfig.MONGO_DB_NAME;
+      const uriOverride = process.env.M3_TEST_MONGO_URI;
+      const localConfig = uriOverride
+        ? {}
+        : dotenv.parse(readFileSync(path.join(serverDirectory, '.env')));
+      const uri = uriOverride ?? localConfig.MONGO_DB_URI;
+      const applicationDatabaseName = uriOverride ? 'm3-test-override' : localConfig.MONGO_DB_NAME;
       const uriHost = uri ? new URL(uri).hostname : '';
 
       if (!uri || !/^mongodb(?:\+srv)?:\/\//.test(uri)) {
         throw new Error('The local development MongoDB configuration is missing or invalid.');
       }
-      if (localConfig.NODE_ENV !== 'development') {
+      if (!['localhost', '127.0.0.1', '::1'].includes(uriHost)) {
+        throw new Error('M3 integration tests require a loopback MongoDB URI.');
+      }
+      if (!uriOverride && localConfig.NODE_ENV !== 'development') {
         throw new Error('Auth integration tests require a connection explicitly configured for development.');
       }
       if (!applicationDatabaseName || /prod(uction)?|live/i.test(applicationDatabaseName)) {
@@ -98,6 +104,7 @@ describe('M3 authentication, sessions, CSRF, reset, and rate limits', () => {
       }
 
       process.env.NODE_ENV = 'test';
+      process.env.MONGO_DB_URI = uri;
       process.env.MONGO_DB_NAME = testDatabaseName;
       process.env.SESSION_SECRET = randomBytes(64).toString('hex');
       process.env.FRONTEND_ORIGIN = 'http://localhost:5173';
@@ -121,7 +128,13 @@ describe('M3 authentication, sessions, CSRF, reset, and rate limits', () => {
       probeConnection = undefined;
 
       const configPath = path.join(serverDirectory, 'src/config/env.js');
-      serverConfig = require(configPath);
+      const originalDotenvConfig = dotenv.config;
+      dotenv.config = () => ({ parsed: {} });
+      try {
+        serverConfig = require(configPath);
+      } finally {
+        dotenv.config = originalDotenvConfig;
+      }
       User = require(path.join(serverDirectory, 'src/modules/auth/user.model.js'));
       Wedding = require(path.join(serverDirectory, 'src/modules/wedding/wedding.model.js'));
       connectDB = require(path.join(serverDirectory, 'src/config/database.js'));

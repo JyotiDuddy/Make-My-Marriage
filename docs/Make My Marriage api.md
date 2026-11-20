@@ -763,6 +763,12 @@ DELETE /api/v1/weddings/me/our-story/images/STORY_IMAGE_ID
 
 **The dashboard does not have its own collection.**
 
+### **Approved M12 calculation clarifications**
+
+`upcomingEvents` counts non-deleted Events whose status is `UPCOMING` and whose local event date/time in the Wedding timezone is at or after the current instant. `upcomingTasks` is a count of `TODO` and `IN_PROGRESS` Tasks whose deadlines are at or after the current instant; the deadline is an absolute ISO 8601 instant. Associated Tasks are excluded when their Event is deleted, cancelled, or belongs to another Wedding. The API continues to return a count, not task details or ordering.
+
+The PRD's `Recent record updates` dashboard item is deferred to a later API contract; it is not part of this response.
+
 ---
 
 # **7\. Event Management APIs**
@@ -1000,6 +1006,12 @@ GET /events?eventDate=2027-02-13
 * **IN\_PROGRESS.**  
 * **COMPLETED.**
 
+**Task creation requires `title`, `deadline`, `priority`, and `status`. `description` and `eventId` are optional. Omit `eventId` to create a task without an Event. `weddingId` and `createdBy` are set by the server.**
+
+**A Task deadline must be a complete ISO 8601 date-time with an explicit timezone (`Z` or a numeric offset), such as `2027-01-20T12:30:00.000Z`. Date-only values and invalid calendar dates are rejected. Past deadlines are allowed.**
+
+**Success response: HTTP 201 using the standard response envelope. `data` contains the created Task.**
+
 ### **GET /tasks**
 
 **Supports filters:**
@@ -1011,13 +1023,27 @@ GET /tasks?eventId=EVENT_ID
 GET /tasks?page=1&limit=10
 ```
 
-### **PATCH /tasks/**
+**The page defaults to 1, the limit defaults to 10, and the maximum limit is 100. Results are sorted by `deadline` ascending and then `_id` ascending for stable pagination. Success response: HTTP 200 with the Task array in `data` and pagination at the top level.**
 
-**Updates permitted task fields.**
+### **GET /tasks/:taskId**
 
-### **DELETE /tasks/**
+**Returns the Task in the authenticated user's Wedding using the standard response envelope (HTTP 200). A missing or cross-Wedding Task returns the standard not-found response.**
 
-**Deletes the task after verifying wedding ownership.**
+### **PATCH /tasks/:taskId**
+
+**Updates only `title`, `description`, `eventId`, `deadline`, `priority`, or `status`. Ownership and system-managed fields cannot be changed by the client. The deadline uses the full ISO 8601 date-time and explicit-timezone validation above.**
+
+**An empty string clears `description`. Setting `eventId` to `null` removes the Event association. A non-null Event ID must refer to an existing, non-deleted Event belonging to the same Wedding. Cancelled Events are not prohibited.**
+
+**Success response: HTTP 200 using the standard response envelope, with the updated Task in `data`.**
+
+### **DELETE /tasks/:taskId**
+
+**Deletes the Task after verifying Wedding ownership. Tasks are not soft-deleted. Success response: HTTP 200 using the standard response envelope, with `data` containing `{ "id": "TASK_ID" }`. Missing and cross-Wedding Tasks return the standard not-found response.**
+
+### **Task response object**
+
+**Task response objects contain `id`, `title`, `deadline`, `priority`, `status`, `createdBy`, and `createdAt`/`updatedAt`; `description`, `eventId`, and `updatedBy` are included when present. The response does not include MongoDB `_id`/`__v` or the internal `weddingId`.**
 
 **There is no task assignment API.**
 
@@ -1178,6 +1204,31 @@ notes
 
 **The importer validates rows, identifies likely duplicates and returns an import summary.**
 
+**Approved M9 import contract:**
+
+* The upload must use multipart field `file` and a `.csv` filename. Maximum file size is 2 MiB. Maximum data rows is 500, excluding the header.
+* The only supported headers are `familyName`, `primaryContactName`, `mobile`, `email`, `familyGroupInfo`, and `notes`. `familyName` and `mobile` are required headers; optional columns may be omitted.
+* Empty files, missing required headers, duplicate headers, unknown headers, invalid CSV encoding/content, and files over the row/file limit are rejected.
+* Valid rows are imported even when other rows are invalid. Invalid rows are skipped and reported by row number with a validation reason.
+* Likely duplicate mobile numbers produce warnings. A duplicate family row is still imported when its other fields are valid.
+* The success `data` summary contains `totalRows`, `importedCount`, `skippedCount`, `errors`, and `warnings`. Each error/warning contains `rowNumber` and a non-sensitive `reason`; never include the row's private contact values.
+
+**Example summary:**
+
+```
+{
+  "success": true,
+  "message": "Guest import completed",
+  "data": {
+    "totalRows": 3,
+    "importedCount": 2,
+    "skippedCount": 1,
+    "errors": [{ "rowNumber": 3, "reason": "mobile must contain digits and optional phone-number separators." }],
+    "warnings": [{ "rowNumber": 4, "reason": "A family with this normalized mobile number already exists or appears elsewhere in this import." }]
+  }
+}
+```
+
 ## **10.7 POST /guests//rsvp-link**
 
 **Generates or regenerates a unique family RSVP link.**
@@ -1200,6 +1251,8 @@ notes
 **The raw link is returned once. Ordinary Guest GET APIs must never return the token.**
 
 **Regenerating a link revokes the previous token.**
+
+**Approved M9 token contract:** Tokens contain 32 cryptographically random bytes encoded with base64url. The server stores only the SHA-256 token hash. The token expires 90 days after generation. Regeneration atomically replaces the stored token hash, invalidating the previous link. Deleting the Guest revokes access. RSVP token consumers must reject missing, expired, revoked, or soft-deleted Guest records. The raw token appears only in the successful generation/regeneration response and must not be logged.
 
 **The frontend can use the URL in a prefilled WhatsApp message.**
 
@@ -1296,7 +1349,7 @@ eventId: <required for EVENT>
 | **GET** | **`/public/rsvp/:token`** | **Family token** |
 | **PUT** | **`/public/rsvp/:token/events/:eventId`** | **Family token** |
 
-## **12.1 GET /public/rsvp/**
+## **12.1 GET /public/rsvp/:token**
 
 **Backend:**
 
@@ -1341,7 +1394,7 @@ eventId: <required for EVENT>
 
 **Never return family mobile numbers, emails or other families' information.**
 
-## **12.2 PUT /public/rsvp//events/**
+## **12.2 PUT /public/rsvp/:token/events/:eventId**
 
 **Request:**
 
@@ -1385,6 +1438,12 @@ eventId: <required for EVENT>
 
 **A family can update its existing YES/NO response.**
 
+### **Approved M11 operational security settings**
+
+Each public RSVP endpoint is limited to **20 requests per 15 minutes per IP address**, using separate counters for lookup and response submission. The server defaults are configurable with `PUBLIC_RSVP_GET_RATE_LIMIT_MAX`, `PUBLIC_RSVP_PUT_RATE_LIMIT_MAX`, and `PUBLIC_RSVP_RATE_LIMIT_WINDOW_MS`. This value was approved for M11 planning on 2026-11-18.
+
+For these M11 routes, malformed, unknown, expired, revoked, regenerated, and deleted-family tokens receive one consistent, non-revealing `404 TOKEN_INVALID` error. This endpoint-specific behavior follows the Family RSVP privacy requirement and avoids distinguishing the general `TOKEN_EXPIRED`/`TOKEN_REVOKED` errors listed in §18. RSVP responses set `Referrer-Policy: no-referrer`. These family-token routes do not require an Admin/Manager session or its CSRF token. Public RSVP access remains available when the Wedding website is unpublished.
+
 ---
 
 # **13\. Photo Gallery APIs**
@@ -1403,6 +1462,8 @@ eventId: <required for EVENT>
 **Organizer uploads an image through multipart form data.**
 
 **Backend validates, uploads to Cloudinary, and creates a Photo document with APPROVED status.**
+
+**Approved M14 organizer-upload clarification (2026-11-19): Organizer photo uploads are limited to 10 MB per photo.**
 
 ## **13.2 GET /photos**
 
@@ -1436,6 +1497,8 @@ GET /photos?page=1&limit=10
 
 **Backend sets `reviewedBy` and `reviewedAt`.**
 
+**Approved M14 review clarification (2026-11-19): Only an Admin may review a GUEST photo whose current status is PENDING. A photo may be reviewed once; subsequent review attempts conflict. Organizer-uploaded photos cannot be reviewed.**
+
 ## **13.4 POST /public/weddings//photos**
 
 **Guest submission through multipart form data.**
@@ -1443,6 +1506,18 @@ GET /photos?page=1&limit=10
 **Backend verifies the published wedding, applies rate limits, validates the file and optional event, uploads it to Cloudinary and creates a Photo document with PENDING status.**
 
 **Guests cannot choose the approval status.**
+
+**Approved M14 request clarification (2026-11-19): Use multipart field `image` for the single file and optional `eventId` as the only text field.**
+
+**Approved M14 guest-upload clarification (2026-11-19): Public guest photos are limited to 10 MB per photo.**
+
+**Approved M14 guest-upload clarification (2026-11-19): Accept JPEG, PNG, and WebP image content only; validate that detected file content matches the declared MIME type.**
+
+**Approved M14 guest-upload clarification (2026-11-19): Limit submissions to 5 requests per 15 minutes per IP address (`request.ip`). Configure with `PUBLIC_PHOTO_UPLOAD_RATE_LIMIT_MAX` and `PUBLIC_PHOTO_RATE_LIMIT_WINDOW_MS`.**
+
+**Approved M14 guest-upload clarification (2026-11-19): On success, return HTTP 201 with the standard success envelope and `data: { "status": "PENDING" }` only. Do not return the Photo ID, image URL, uploader/reviewer information, or Cloudinary metadata.**
+
+**Approved M14 guest-upload Cloudinary handling (2026-11-19): If Cloudinary upload fails, return the standard 502 external-service error and create no Photo document. If MongoDB persistence fails after upload, attempt to delete the newly uploaded asset; if cleanup fails, log the cleanup failure for manual retry. Never return Cloudinary identifiers or other internal asset metadata.**
 
 ## **13.5 DELETE /photos/**
 
@@ -1490,6 +1565,12 @@ GET /photos?page=1&limit=10
 **Deletes the announcement after checking wedding ownership.**
 
 **Only published announcements are returned publicly.**
+
+### **Approved M13 implementation clarifications**
+
+* A DRAFT-to-PUBLISHED transition sets `publishedAt` to the new publication time. Unpublishing removes `publishedAt`; editing an announcement that remains PUBLISHED preserves its existing timestamp. Republishing after unpublishing sets a fresh publication time.
+* The Admin/Manager announcement list is ordered by most recently updated first (`updatedAt` descending), with `_id` descending as the tie-breaker.
+* `title` and `description` must be nonempty strings. No additional maximum character lengths are imposed.
 
 ---
 
@@ -1687,6 +1768,8 @@ GET /photos?page=1&limit=10
 | **Wedding cover** | **10 MB** |
 | **Our Story photograph** | **10 MB** |
 | **Gallery photograph** | **10 MB** |
+
+**Approved M10 clarification (2026-11-18): Invitation card images are limited to 10 MB per image. The proposed limits for other upload types in this table are not approved by this clarification.**
 
 ## **Our Story Specific Rules**
 

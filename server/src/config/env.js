@@ -77,6 +77,8 @@ if (bcryptSaltRounds > 15) {
 }
 
 const authRateLimitWindowMs = positiveInteger('AUTH_RATE_LIMIT_WINDOW_MS', 15 * 60 * 1000);
+const publicRsvpRateLimitWindowMs = positiveInteger('PUBLIC_RSVP_RATE_LIMIT_WINDOW_MS', 15 * 60 * 1000);
+const publicPhotoRateLimitWindowMs = positiveInteger('PUBLIC_PHOTO_RATE_LIMIT_WINDOW_MS', 15 * 60 * 1000);
 const sessionMaxAgeMs = positiveInteger('SESSION_MAX_AGE_MS', 7 * 24 * 60 * 60 * 1000);
 const passwordResetTokenTtlMs = positiveInteger('PASSWORD_RESET_TOKEN_TTL_MS', 60 * 60 * 1000);
 const managerActivationTokenTtlMs = positiveInteger('MANAGER_ACTIVATION_TOKEN_TTL_MS', 24 * 60 * 60 * 1000);
@@ -152,6 +154,7 @@ module.exports = {
   passwordResetTokenTtlMs,
   managerActivationTokenTtlMs,
   authRateLimitWindowMs,
+  publicRsvpRateLimitWindowMs,
   authRateLimits: {
     register: positiveInteger('AUTH_REGISTER_RATE_LIMIT_MAX', 5),
     login: positiveInteger('AUTH_LOGIN_RATE_LIMIT_MAX', 10),
@@ -160,6 +163,14 @@ module.exports = {
     managerInvitation: positiveInteger('AUTH_MANAGER_INVITATION_RATE_LIMIT_MAX', 5),
     managerInvitationResend: positiveInteger('AUTH_MANAGER_INVITATION_RESEND_RATE_LIMIT_MAX', 5),
     managerActivation: positiveInteger('AUTH_MANAGER_ACTIVATION_RATE_LIMIT_MAX', 10),
+  },
+  publicRsvpRateLimits: {
+    get: positiveInteger('PUBLIC_RSVP_GET_RATE_LIMIT_MAX', 20),
+    put: positiveInteger('PUBLIC_RSVP_PUT_RATE_LIMIT_MAX', 20),
+  },
+  publicPhotoRateLimitWindowMs,
+  publicPhotoRateLimits: {
+    upload: positiveInteger('PUBLIC_PHOTO_UPLOAD_RATE_LIMIT_MAX', 5),
   },
   smtp,
   cloudinary,
